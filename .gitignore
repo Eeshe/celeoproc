@@ -12,3 +12,5 @@ app/bin/
 .settings/
 .project
 .classpath
+
+.env

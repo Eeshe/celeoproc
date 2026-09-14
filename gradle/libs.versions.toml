@@ -4,7 +4,14 @@
 [versions]
 guava = "33.5.0-jre"
 junit-jupiter = "6.0.1"
+slf4j = "2.0.17"
+logback = "1.5.18"
+
+hikaricp = "6.3.0"
 
 [libraries]
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
