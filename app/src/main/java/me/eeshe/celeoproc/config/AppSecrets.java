@@ -2,7 +2,13 @@ package me.eeshe.celeoproc.config;
 
 import java.util.Objects;
 
-public final class AppConfig {
+/**
+ * Secret configuration sourced exclusively from environment variables.
+ *
+ * <p>Contains credentials and connection details that must never be committed
+ * to version control.
+ */
+public final class AppSecrets {
     private static final String DISCORD_BOT_TOKEN_ENV = "DISCORD_BOT_TOKEN";
     private static final String POSTGRES_HOST_ENV = "PGHOST";
     private static final String POSTGRES_PORT_ENV = "PGPORT";
@@ -21,10 +27,10 @@ public final class AppConfig {
     private final String postgresUrl;
     private final int databasePoolSize;
 
-    public AppConfig() {
+    public AppSecrets() {
         this.discordBotToken = requireEnv(DISCORD_BOT_TOKEN_ENV);
         this.postgresHost = requireEnv(POSTGRES_HOST_ENV);
-        this.postgresPort = parsePort(requireEnv(POSTGRES_PORT_ENV));
+        this.postgresPort = parsePositiveInt(requireEnv(POSTGRES_PORT_ENV), POSTGRES_PORT_ENV);
         this.postgresDatabase = requireEnv(POSTGRES_DATABASE_ENV);
         this.postgresUser = requireEnv(POSTGRES_USER_ENV);
         this.postgresPassword = requireEnv(POSTGRES_PASSWORD_ENV);
@@ -83,10 +89,6 @@ public final class AppConfig {
             return fallback;
         }
         return value;
-    }
-
-    private static int parsePort(String value) {
-        return parsePositiveInt(value, POSTGRES_PORT_ENV);
     }
 
     private static int parsePositiveInt(String value, String key) {

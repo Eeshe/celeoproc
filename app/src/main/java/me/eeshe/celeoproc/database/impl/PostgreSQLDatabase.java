@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import me.eeshe.celeoproc.config.AppConfig;
+import me.eeshe.celeoproc.config.AppSecrets;
 import me.eeshe.celeoproc.database.Database;
 
 public final class PostgreSQLDatabase implements Database {
@@ -24,19 +24,19 @@ public final class PostgreSQLDatabase implements Database {
 
     private HikariDataSource dataSource;
 
-    public PostgreSQLDatabase(AppConfig appConfig) {
-        Objects.requireNonNull(appConfig, "AppConfig must not be null");
-        this.hikariConfig = buildHikariConfig(appConfig);
+    public PostgreSQLDatabase(AppSecrets appSecrets) {
+        Objects.requireNonNull(appSecrets, "AppSecrets must not be null");
+        this.hikariConfig = buildHikariConfig(appSecrets);
     }
 
-    private static HikariConfig buildHikariConfig(AppConfig appConfig) {
+    private static HikariConfig buildHikariConfig(AppSecrets appSecrets) {
         final HikariConfig config = new HikariConfig();
 
         config.setPoolName(POOL_NAME);
-        config.setJdbcUrl(appConfig.getPostgresUrl());
-        config.setUsername(appConfig.getPostgresUser());
-        config.setPassword(appConfig.getPostgresPassword());
-        config.setMaximumPoolSize(appConfig.getDatabasePoolSize());
+        config.setJdbcUrl(appSecrets.getPostgresUrl());
+        config.setUsername(appSecrets.getPostgresUser());
+        config.setPassword(appSecrets.getPostgresPassword());
+        config.setMaximumPoolSize(appSecrets.getDatabasePoolSize());
         config.setConnectionTimeout(CONNECTION_TIMEOUT_MILLIS);
         config.setMaxLifetime(MAX_LIFETIME_MILLIS);
         config.setInitializationFailTimeout(1);

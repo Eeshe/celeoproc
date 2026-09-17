@@ -9,6 +9,7 @@ repositories {
 
 dependencies {
     implementation(libs.guava)
+    implementation(libs.jackson.databind)
     implementation("org.postgresql:postgresql:42.7.13")
     implementation("net.dv8tion:JDA:6.6.0") {
       exclude(module="opus-java")
