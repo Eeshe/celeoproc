@@ -17,7 +17,10 @@ import me.eeshe.celeoproc.config.JsonConfigLoader;
 import me.eeshe.celeoproc.database.Database;
 import me.eeshe.celeoproc.database.impl.PostgreSQLDatabase;
 import me.eeshe.celeoproc.listener.CommandListener;
+import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
+import me.eeshe.celeoproc.repository.Repository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
+import me.eeshe.celeoproc.repository.impl.ElectricityStatusEmbedRepositoryImpl;
 import me.eeshe.celeoproc.repository.impl.UserElectricityStatusRepositoryImpl;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.impl.MessageServiceImpl;
@@ -41,6 +44,7 @@ public final class Bot {
     private JDA bot;
     private Database database;
     private UserElectricityStatusRepository userElectricityStatusRepository;
+    private ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
 
     public Bot(final AppSettings appSettings, final AppSecrets appSecrets, final AppMessages appMessages) {
         Objects.requireNonNull(appSettings, "AppSettings must not be null");
@@ -116,6 +120,9 @@ public final class Bot {
     private void initializeRepositories() throws SQLException {
         this.userElectricityStatusRepository = new UserElectricityStatusRepositoryImpl(database);
         userElectricityStatusRepository.initialize();
+
+        this.electricityStatusEmbedRepository = new ElectricityStatusEmbedRepositoryImpl(database);
+        electricityStatusEmbedRepository.initialize();
     }
 
     public AppSettings getAppSettings() {
@@ -150,6 +157,10 @@ public final class Bot {
         return userElectricityStatusRepository;
     }
 
+    public ElectricityStatusEmbedRepository getElectricityStatusEmbedRepository() {
+        return electricityStatusEmbedRepository;
+    }
+
     public void shutdown() {
         if (bot != null) {
             bot.shutdown();
@@ -159,13 +170,18 @@ public final class Bot {
     }
 
     private void shutdownRepositories() {
-        if (userElectricityStatusRepository == null) {
+        shutdownRepository(userElectricityStatusRepository);
+        shutdownRepository(electricityStatusEmbedRepository);
+    }
+
+    private void shutdownRepository(final Repository repository) {
+        if (repository == null) {
             return;
         }
         try {
-            userElectricityStatusRepository.shutdown();
+            repository.shutdown();
         } catch (SQLException exception) {
-            LOGGER.error("Failed to shut down repositories", exception);
+            LOGGER.error("Failed to shut down repository", exception);
         }
     }
 

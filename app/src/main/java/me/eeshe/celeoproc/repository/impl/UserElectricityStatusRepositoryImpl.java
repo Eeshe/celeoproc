@@ -7,8 +7,6 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -112,8 +110,8 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
             statement.setLong(1, status.getUserId());
             statement.setString(2, status.getNickname());
 
-            setInstant(statement, 3, status.getElectricityIn());
-            setInstant(statement, 4, status.getElectricityOut());
+            JdbcTypeMapper.setInstant(statement, 3, status.getElectricityIn());
+            JdbcTypeMapper.setInstant(statement, 4, status.getElectricityOut());
             setDuration(statement, 5, status.getElectricityInEstimate());
 
             statement.executeUpdate();
@@ -174,8 +172,8 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
     }
 
     private UserElectricityStatus mapRow(final ResultSet resultSet) throws SQLException {
-        final Instant electricityIn = getInstant(resultSet, COLUMN_ELECTRICITY_IN);
-        final Instant electricityOut = getInstant(resultSet, COLUMN_ELECTRICITY_OUT);
+        final Instant electricityIn = JdbcTypeMapper.getInstant(resultSet, COLUMN_ELECTRICITY_IN);
+        final Instant electricityOut = JdbcTypeMapper.getInstant(resultSet, COLUMN_ELECTRICITY_OUT);
         final Duration electricityInEstimate = getDuration(resultSet, COLUMN_ELECTRICITY_IN_ESTIMATE);
 
         return new UserElectricityStatus(
@@ -184,26 +182,6 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
                 electricityIn,
                 electricityOut,
                 electricityInEstimate);
-    }
-
-    private void setInstant(
-            final PreparedStatement statement,
-            final int index,
-            final Instant instant)
-            throws SQLException {
-        if (instant == null) {
-            statement.setNull(index, Types.TIMESTAMP_WITH_TIMEZONE);
-            return;
-        }
-        statement.setObject(index, instant.atOffset(ZoneOffset.UTC));
-    }
-
-    private Instant getInstant(
-            final ResultSet resultSet,
-            final String column) throws SQLException {
-        final OffsetDateTime value = resultSet.getObject(column, OffsetDateTime.class);
-
-        return value == null ? null : value.toInstant();
     }
 
     private void setDuration(
