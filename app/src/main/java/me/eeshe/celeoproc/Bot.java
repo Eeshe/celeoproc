@@ -17,6 +17,8 @@ import me.eeshe.celeoproc.config.JsonConfigLoader;
 import me.eeshe.celeoproc.database.Database;
 import me.eeshe.celeoproc.database.impl.PostgreSQLDatabase;
 import me.eeshe.celeoproc.listener.CommandListener;
+import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
+import me.eeshe.celeoproc.repository.impl.UserElectricityStatusRepositoryImpl;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.impl.MessageServiceImpl;
 import net.dv8tion.jda.api.JDA;
@@ -38,6 +40,7 @@ public final class Bot {
 
     private JDA bot;
     private Database database;
+    private UserElectricityStatusRepository userElectricityStatusRepository;
 
     public Bot(final AppSettings appSettings, final AppSecrets appSecrets, final AppMessages appMessages) {
         Objects.requireNonNull(appSettings, "AppSettings must not be null");
@@ -107,6 +110,12 @@ public final class Bot {
         this.database = new PostgreSQLDatabase(appSecrets);
 
         database.connect();
+        initializeRepositories();
+    }
+
+    private void initializeRepositories() throws SQLException {
+        this.userElectricityStatusRepository = new UserElectricityStatusRepositoryImpl(database);
+        userElectricityStatusRepository.initialize();
     }
 
     public AppSettings getAppSettings() {
@@ -137,11 +146,27 @@ public final class Bot {
         return database;
     }
 
+    public UserElectricityStatusRepository getUserElectricityStatusRepository() {
+        return userElectricityStatusRepository;
+    }
+
     public void shutdown() {
         if (bot != null) {
             bot.shutdown();
         }
+        shutdownRepositories();
         shutdownDatabase();
+    }
+
+    private void shutdownRepositories() {
+        if (userElectricityStatusRepository == null) {
+            return;
+        }
+        try {
+            userElectricityStatusRepository.shutdown();
+        } catch (SQLException exception) {
+            LOGGER.error("Failed to shut down repositories", exception);
+        }
     }
 
     private void shutdownDatabase() {
