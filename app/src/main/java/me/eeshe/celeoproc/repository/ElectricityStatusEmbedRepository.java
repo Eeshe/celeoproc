@@ -28,4 +28,11 @@ public interface ElectricityStatusEmbedRepository extends Repository {
      * @return every stored embed
      */
     List<ElectricityStatusEmbed> getAll();
+
+    /**
+     * Deletes the stored embed for the given message id, if present.
+     *
+     * @param messageId id of the Discord message the embed belongs to
+     */
+    void delete(long messageId);
 }

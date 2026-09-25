@@ -81,6 +81,10 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
             SELECT_COLUMNS,
             TABLE);
 
+    private static final String DELETE_SQL = "DELETE FROM %s WHERE %s = ?".formatted(
+            TABLE,
+            COLUMN_MESSAGE_ID);
+
     private final Database database;
 
     public ElectricityStatusEmbedRepositoryImpl(final Database database) {
@@ -159,6 +163,17 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
             return List.of();
         }
         return statusEmbeds;
+    }
+
+    @Override
+    public void delete(final long messageId) {
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(DELETE_SQL)) {
+            statement.setLong(1, messageId);
+            statement.executeUpdate();
+        } catch (final SQLException exception) {
+            LOGGER.error("Failed to delete embed for message '{}'", messageId, exception);
+        }
     }
 
     private ElectricityStatusEmbed mapRow(final ResultSet resultSet) throws SQLException {

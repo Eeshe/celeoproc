@@ -8,6 +8,10 @@ public enum Message {
     SHUTDOWN("shutdown"),
     GENERIC_ERROR("generic_error"),
     MISSING_ARGUMENT("missing_argument"),
+    GUILD_ONLY("guild_only"),
+
+    ELECTRICITY_STATUS_EMBED_BUTTON_OUT("electricity_status_embed_button_out"),
+    ELECTRICITY_STATUS_EMBED_BUTTON_IN("electricity_status_embed_button_in"),
 
     BOT_INFO("bot_info"),
     RELOAD_SUCCESS("reload_success"),

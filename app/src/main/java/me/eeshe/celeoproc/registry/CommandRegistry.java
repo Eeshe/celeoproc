@@ -1,7 +1,8 @@
-package me.eeshe.celeoproc.command;
+package me.eeshe.celeoproc.registry;
 
 import java.util.Collection;
 
+import me.eeshe.celeoproc.command.BotCommand;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 /**

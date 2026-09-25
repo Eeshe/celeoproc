@@ -2,7 +2,7 @@ package me.eeshe.celeoproc.listener;
 
 import java.util.Objects;
 
-import me.eeshe.celeoproc.command.CommandRegistry;
+import me.eeshe.celeoproc.registry.CommandRegistry;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 

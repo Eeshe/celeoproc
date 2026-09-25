@@ -8,8 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import me.eeshe.celeoproc.command.BotCommand;
-import me.eeshe.celeoproc.command.CommandRegistry;
-import me.eeshe.celeoproc.command.CommandRegistryImpl;
 import me.eeshe.celeoproc.config.AppMessages;
 import me.eeshe.celeoproc.config.AppSecrets;
 import me.eeshe.celeoproc.config.AppSettings;
@@ -17,13 +15,20 @@ import me.eeshe.celeoproc.config.JsonConfigLoader;
 import me.eeshe.celeoproc.database.Database;
 import me.eeshe.celeoproc.database.impl.PostgreSQLDatabase;
 import me.eeshe.celeoproc.listener.CommandListener;
+import me.eeshe.celeoproc.listener.ElectricityStatusEmbedListener;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.Repository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
 import me.eeshe.celeoproc.repository.impl.ElectricityStatusEmbedRepositoryImpl;
 import me.eeshe.celeoproc.repository.impl.UserElectricityStatusRepositoryImpl;
+import me.eeshe.celeoproc.registry.CommandRegistry;
+import me.eeshe.celeoproc.registry.impl.CommandRegistryImpl;
+import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
+import me.eeshe.celeoproc.service.UserElectricityStatusService;
+import me.eeshe.celeoproc.service.impl.ElectricityStatusEmbedServiceImpl;
 import me.eeshe.celeoproc.service.impl.MessageServiceImpl;
+import me.eeshe.celeoproc.service.impl.UserElectricityStatusServiceImpl;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -37,6 +42,8 @@ public final class Bot {
     private final AppMessages appMessages;
 
     private MessageService messageService;
+    private ElectricityStatusEmbedService electricityStatusEmbedService;
+    private UserElectricityStatusService userElectricityStatusService;
     private CommandRegistry commandRegistry;
 
     private final List<JsonConfigLoader> configs;
@@ -74,14 +81,17 @@ public final class Bot {
 
     private void initializeServices() {
         this.messageService = new MessageServiceImpl(appMessages);
+        this.electricityStatusEmbedService = new ElectricityStatusEmbedServiceImpl(electricityStatusEmbedRepository, messageService);
+        this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository);
     }
 
     private void initializeRegistries() {
-        this.commandRegistry = new CommandRegistryImpl(messageService, this);
+        this.commandRegistry = new CommandRegistryImpl(messageService, electricityStatusEmbedService, this);
     }
 
     private void registerListeners() {
         bot.addEventListener(new CommandListener(commandRegistry));
+        bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService, userElectricityStatusService));
     }
 
     private void registerCommands() {
@@ -135,6 +145,14 @@ public final class Bot {
 
     public MessageService getMessageService() {
         return messageService;
+    }
+
+    public ElectricityStatusEmbedService getElectricityStatusEmbedService() {
+        return electricityStatusEmbedService;
+    }
+
+    public UserElectricityStatusService getUserElectricityStatusService() {
+        return userElectricityStatusService;
     }
 
     public List<JsonConfigLoader> getConfigs() {

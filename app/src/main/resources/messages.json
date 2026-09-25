@@ -3,6 +3,9 @@
   "shutdown": "Shutting down...",
   "generic_error": "Something went wrong.",
   "missing_argument": "Missing argument: {argument}",
+  "guild_only": "This command can only be used in server text channels.",
+  "electricity_status_embed_button_out": "🇻🇪️ Electricity out",
+  "electricity_status_embed_button_in": "💡️ Electricity in",
   "bot_info": "Celeoproc is a bot",
   "reload_success": "Configuration reloaded successfully.",
   "reload_error": "Failed to reload configuration. Check the bot console for details."
