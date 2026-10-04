@@ -1,6 +1,7 @@
 package me.eeshe.celeoproc.model;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -62,7 +63,7 @@ public final class ElectricityStatusEmbed {
     }
 
     public List<Long> getParticipantUserIds() {
-        return participantUserIds;
+        return List.copyOf(participantUserIds);
     }
 
     public void addParticipant(long participantId) {
@@ -83,9 +84,9 @@ public final class ElectricityStatusEmbed {
 
     private List<Long> normalizeParticipants(final List<Long> participantUserIds) {
         if (participantUserIds == null) {
-            return List.of();
+            return new ArrayList<>();
         }
-        return List.copyOf(participantUserIds);
+        return new ArrayList<>(participantUserIds);
     }
 
     @Override

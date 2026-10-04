@@ -12,6 +12,13 @@ public enum Message {
 
     ELECTRICITY_STATUS_EMBED_BUTTON_OUT("electricity_status_embed_button_out"),
     ELECTRICITY_STATUS_EMBED_BUTTON_IN("electricity_status_embed_button_in"),
+    ELECTRICITY_STATUS_ALREADY_HAS_ELECTRICITY("electricity_status_already_has_electricity"),
+    ELECTRICITY_STATUS_ALREADY_NO_ELECTRICITY("electricity_status_already_no_electricity"),
+
+    ELECTRICITY_STATUS_EMBED_HAS_ELECTRICITY("electricity_status_embed_has_electricity"),
+    ELECTRICITY_STATUS_EMBED_LAST_ELECTRICITY_OUT("electricity_status_embed_last_electricity_out"),
+    ELECTRICITY_STATUS_EMBED_OUTAGE_TODAY("electricity_status_embed_outage_today"),
+    ELECTRICITY_STATUS_EMBED_NO_ELECTRICITY("electricity_status_embed_no_electricity"),
 
     BOT_INFO("bot_info"),
     RELOAD_SUCCESS("reload_success"),

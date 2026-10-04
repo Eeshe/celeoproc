@@ -1,5 +1,6 @@
 package me.eeshe.celeoproc.service;
 
+import me.eeshe.celeoproc.model.ElectricityStatusEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 /**
@@ -16,6 +17,15 @@ public interface ElectricityStatusEmbedService {
      * @return {@code true} when the embed was sent successfully
      */
     boolean sendElectricityStatusEmbed(TextChannel channel);
+
+    /**
+     * Rebuilds the embed from its registered participants and edits the
+     * already-posted Discord message.
+     *
+     * @param statusEmbed stored embed to refresh
+     * @return {@code true} when the edit was dispatched
+     */
+    boolean updateElectricityStatusEmbed(ElectricityStatusEmbed statusEmbed);
 
     /**
      * Deletes the stored electricity status embed associated with the given

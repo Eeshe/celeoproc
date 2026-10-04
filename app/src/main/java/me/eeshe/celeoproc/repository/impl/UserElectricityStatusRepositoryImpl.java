@@ -4,8 +4,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,7 +44,7 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
                 %s TEXT NOT NULL,
                 %s TIMESTAMPTZ,
                 %s TIMESTAMPTZ,
-                %s BIGINT
+                %s TIMESTAMPTZ
             )""".formatted(
             TABLE,
             COLUMN_USER_ID,
@@ -112,7 +110,7 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
 
             JdbcTypeMapper.setInstant(statement, 3, status.getElectricityIn());
             JdbcTypeMapper.setInstant(statement, 4, status.getElectricityOut());
-            setDuration(statement, 5, status.getElectricityInEstimate());
+            JdbcTypeMapper.setInstant(statement, 5, status.getElectricityInEstimate());
 
             statement.executeUpdate();
         } catch (final SQLException exception) {
@@ -174,7 +172,7 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
     private UserElectricityStatus mapRow(final ResultSet resultSet) throws SQLException {
         final Instant electricityIn = JdbcTypeMapper.getInstant(resultSet, COLUMN_ELECTRICITY_IN);
         final Instant electricityOut = JdbcTypeMapper.getInstant(resultSet, COLUMN_ELECTRICITY_OUT);
-        final Duration electricityInEstimate = getDuration(resultSet, COLUMN_ELECTRICITY_IN_ESTIMATE);
+        final Instant electricityInEstimate = JdbcTypeMapper.getInstant(resultSet, COLUMN_ELECTRICITY_IN_ESTIMATE);
 
         return new UserElectricityStatus(
                 resultSet.getLong(COLUMN_USER_ID),
@@ -182,23 +180,5 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
                 electricityIn,
                 electricityOut,
                 electricityInEstimate);
-    }
-
-    private void setDuration(
-            final PreparedStatement statement,
-            final int index,
-            final Duration duration)
-            throws SQLException {
-        if (duration == null) {
-            statement.setNull(index, Types.BIGINT);
-            return;
-        }
-        statement.setLong(index, duration.getSeconds());
-    }
-
-    private Duration getDuration(final ResultSet resultSet, final String column) throws SQLException {
-        final Long seconds = resultSet.getObject(column, Long.class);
-
-        return seconds == null ? null : Duration.ofSeconds(seconds);
     }
 }

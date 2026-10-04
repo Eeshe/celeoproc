@@ -81,8 +81,8 @@ public final class Bot {
 
     private void initializeServices() {
         this.messageService = new MessageServiceImpl(appMessages);
-        this.electricityStatusEmbedService = new ElectricityStatusEmbedServiceImpl(electricityStatusEmbedRepository, messageService);
-        this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository);
+        this.electricityStatusEmbedService = new ElectricityStatusEmbedServiceImpl(electricityStatusEmbedRepository, userElectricityStatusRepository, messageService, appSettings, bot);
+        this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository, electricityStatusEmbedRepository, electricityStatusEmbedService);
     }
 
     private void initializeRegistries() {
@@ -91,7 +91,7 @@ public final class Bot {
 
     private void registerListeners() {
         bot.addEventListener(new CommandListener(commandRegistry));
-        bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService, userElectricityStatusService));
+        bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService, userElectricityStatusService, messageService));
     }
 
     private void registerCommands() {

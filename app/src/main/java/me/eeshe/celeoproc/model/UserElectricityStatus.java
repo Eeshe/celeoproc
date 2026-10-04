@@ -1,7 +1,8 @@
 package me.eeshe.celeoproc.model;
 
-import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Objects;
 
 /**
@@ -18,14 +19,14 @@ public final class UserElectricityStatus {
     private String nickname;
     private Instant electricityIn;
     private Instant electricityOut;
-    private Duration electricityInEstimate;
+    private Instant electricityInEstimate;
 
     public UserElectricityStatus(
             final long userId,
             final String nickname,
             final Instant electricityIn,
             final Instant electricityOut,
-            final Duration electricityInEstimate) {
+            final Instant electricityInEstimate) {
         this.userId = userId;
         this.nickname = Objects.requireNonNull(nickname, "Nickname must not be null");
         this.electricityIn = electricityIn;
@@ -61,12 +62,38 @@ public final class UserElectricityStatus {
         this.electricityOut = electricityOut;
     }
 
-    public Duration getElectricityInEstimate() {
+    public Instant getElectricityInEstimate() {
         return electricityInEstimate;
     }
 
-    public void setElectricityInEstimate(final Duration electricityInEstimate) {
+    public void setElectricityInEstimate(final Instant electricityInEstimate) {
         this.electricityInEstimate = electricityInEstimate;
+    }
+
+    /**
+     * @return {@code true} when no electricity out has been recorded yet, or
+     *         when the latest recorded event was electricity in
+     */
+    public boolean hasElectricity() {
+        if (electricityOut == null) {
+            return true;
+        }
+        if (electricityIn == null) {
+            return false;
+        }
+        return electricityIn.isAfter(electricityOut);
+    }
+
+    /**
+     * @param zone timezone the current day is resolved in
+     * @return {@code true} when the last electricity out happened in the current
+     *         day
+     */
+    public boolean hasElectricityOutToday(final ZoneId zone) {
+        if (electricityOut == null) {
+            return false;
+        }
+        return LocalDate.now(zone).equals(electricityOut.atZone(zone).toLocalDate());
     }
 
     @Override

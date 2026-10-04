@@ -6,6 +6,12 @@
   "guild_only": "This command can only be used in server text channels.",
   "electricity_status_embed_button_out": "🇻🇪️ Electricity out",
   "electricity_status_embed_button_in": "💡️ Electricity in",
+  "electricity_status_already_has_electricity": "You already marked you have electricity",
+  "electricity_status_already_no_electricity": "You already marked you have no electricity",
+  "electricity_status_embed_has_electricity": "**🟩️ {nickname}**\nHas had electricity all day",
+  "electricity_status_embed_last_electricity_out": "Last electricity out was {duration} ago",
+  "electricity_status_embed_outage_today": "**🟩️ {nickname}**\nAlready had electricity outage today\nWas without electricity from {out} to {in}",
+  "electricity_status_embed_no_electricity": "**🟥️ {nickname}**\nElectricity outage started at {out}\nShould have electricity back at {estimate} ({estimate_relative})",
   "bot_info": "Celeoproc is a bot",
   "reload_success": "Configuration reloaded successfully.",
   "reload_error": "Failed to reload configuration. Check the bot console for details."

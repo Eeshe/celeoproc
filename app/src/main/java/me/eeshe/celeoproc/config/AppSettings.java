@@ -1,5 +1,7 @@
 package me.eeshe.celeoproc.config;
 
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public final class AppSettings extends JsonConfigLoader {
     private List<Long> guildIds = List.of();
+    private ZoneId timezone = ZoneId.systemDefault();
 
     public AppSettings() {
         super("settings", "config", "settings.json", "/settings.json", "SETTINGS_PATH");
@@ -15,10 +18,15 @@ public final class AppSettings extends JsonConfigLoader {
     @Override
     protected void apply(final JsonNode root) {
         this.guildIds = loadGuildIds(root);
+        this.timezone = loadTimezone(root);
     }
 
     public List<Long> getGuildIds() {
         return guildIds;
+    }
+
+    public ZoneId getTimezone() {
+        return timezone;
     }
 
     private List<Long> loadGuildIds(final JsonNode root) {
@@ -43,5 +51,18 @@ public final class AppSettings extends JsonConfigLoader {
             }
         }
         return List.copyOf(guildIds);
+    }
+
+    private ZoneId loadTimezone(final JsonNode root) {
+        final JsonNode node = root.path("timezone");
+        if (node.isMissingNode() || node.isNull() || node.asText().isBlank()) {
+            return ZoneId.systemDefault();
+        }
+        try {
+            return ZoneId.of(node.asText().trim());
+        } catch (final DateTimeException exception) {
+            throw new IllegalStateException(
+                    "Setting 'timezone' contains an invalid zone id '%s'".formatted(node.asText()), exception);
+        }
     }
 }
