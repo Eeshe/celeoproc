@@ -21,6 +21,7 @@
   "electricity_status_embed_has_electricity": "**🟩️ {nickname}**\nHas had electricity all day\nIt's been **{time_since_electricity_outage_relative}** since the last power outage",
   "electricity_status_embed_outage_today": "**🟩️ {nickname}**\nAlready had electricity outage today\nWas without electricity from {out} to {in}",
   "electricity_status_embed_no_electricity": "**🟥️ {nickname}**\nElectricity outage started at {out}\nShould have electricity back at {estimate} ({estimate_relative})",
+  "electricity_status_embed_no_outage_history": "**⬜️ {nickname}**\nHasn't marked any power outage yet",
   "bot_info": "Celeoproc is a bot",
   "reload_success": "Configuration reloaded successfully.",
   "reload_error": "Failed to reload configuration. Check the bot console for details."

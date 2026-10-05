@@ -29,6 +29,7 @@ public enum Message {
     ELECTRICITY_STATUS_EMBED_HAS_ELECTRICITY("electricity_status_embed_has_electricity"),
     ELECTRICITY_STATUS_EMBED_OUTAGE_TODAY("electricity_status_embed_outage_today"),
     ELECTRICITY_STATUS_EMBED_NO_ELECTRICITY("electricity_status_embed_no_electricity"),
+    ELECTRICITY_STATUS_EMBED_NO_OUTAGE_HISTORY("electricity_status_embed_no_outage_history"),
 
     BOT_INFO("bot_info"),
     RELOAD_SUCCESS("reload_success"),

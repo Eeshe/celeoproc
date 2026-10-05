@@ -55,8 +55,10 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
     public void sendElectricityIn(final long userId, final String nickname, final Instant electricityOut,
             final Instant electricityIn) {
         Objects.requireNonNull(nickname, "Nickname must not be null");
-        Objects.requireNonNull(electricityOut, "Electricity out must not be null");
         Objects.requireNonNull(electricityIn, "Electricity in must not be null");
+        if (electricityOut == null) {
+            return;
+        }
 
         send(userId, Message.ELECTRICITY_REGISTRY_IN, Map.of(
                 "nickname", nickname,

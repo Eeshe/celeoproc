@@ -135,6 +135,9 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     }
 
     private String formatParticipant(final UserElectricityStatus status) {
+        if (status.getElectricityOut() == null) {
+            return formatWithoutOutageHistory(status);
+        }
         if (!status.hasElectricity()) {
             return formatWithoutElectricity(status);
         }
@@ -155,6 +158,11 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
                 "nickname", status.getNickname(),
                 "out", formatTimestamp(status.getElectricityOut()),
                 "in", formatTimestamp(status.getElectricityIn())));
+    }
+
+    private String formatWithoutOutageHistory(final UserElectricityStatus status) {
+        return messageService.get(Message.ELECTRICITY_STATUS_EMBED_NO_OUTAGE_HISTORY, Map.of(
+                "nickname", status.getNickname()));
     }
 
     private String formatWithoutElectricity(final UserElectricityStatus status) {
