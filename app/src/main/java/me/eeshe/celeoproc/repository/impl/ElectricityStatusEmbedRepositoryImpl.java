@@ -78,6 +78,11 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
             TABLE,
             COLUMN_MESSAGE_ID);
 
+    private static final String GET_BY_PARTICIPANT_SQL = "SELECT %s FROM %s WHERE ? = ANY(%s)".formatted(
+            SELECT_COLUMNS,
+            TABLE,
+            COLUMN_PARTICIPANT_USER_IDS);
+
     private static final String GET_STALE_SQL = "SELECT %s FROM %s WHERE %s <= ?".formatted(
             SELECT_COLUMNS,
             TABLE,
@@ -85,6 +90,9 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
 
     private static final String CREATE_UPDATED_AT_INDEX_SQL = "CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s)"
             .formatted(TABLE, COLUMN_UPDATED_AT, TABLE, COLUMN_UPDATED_AT);
+
+    private static final String CREATE_PARTICIPANT_INDEX_SQL = "CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s USING GIN (%s)"
+            .formatted(TABLE, COLUMN_PARTICIPANT_USER_IDS, TABLE, COLUMN_PARTICIPANT_USER_IDS);
 
     private static final String DELETE_SQL = "DELETE FROM %s WHERE %s = ?".formatted(
             TABLE,
@@ -101,9 +109,12 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
         LOGGER.info("Initializing '{}' table...", TABLE);
         try (Connection connection = database.getConnection();
                 PreparedStatement statement = connection.prepareStatement(CREATE_TABLE_SQL);
-                PreparedStatement indexStatement = connection.prepareStatement(CREATE_UPDATED_AT_INDEX_SQL)) {
+                PreparedStatement indexStatement = connection.prepareStatement(CREATE_UPDATED_AT_INDEX_SQL);
+                PreparedStatement participantIndexStatement = connection
+                        .prepareStatement(CREATE_PARTICIPANT_INDEX_SQL)) {
             statement.executeUpdate();
             indexStatement.executeUpdate();
+            participantIndexStatement.executeUpdate();
         }
         LOGGER.info("Successfully initialized '{}' table", TABLE);
     }
@@ -154,6 +165,25 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
             LOGGER.error("Failed to load embed for message '{}'", messageId, exception);
             return Optional.empty();
         }
+    }
+
+    @Override
+    public List<ElectricityStatusEmbed> getByParticipantId(final long userId) {
+        final List<ElectricityStatusEmbed> statusEmbeds = new ArrayList<>();
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(GET_BY_PARTICIPANT_SQL)) {
+            statement.setLong(1, userId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    statusEmbeds.add(mapRow(resultSet));
+                }
+            }
+        } catch (final SQLException exception) {
+            LOGGER.error("Failed to load embeds for participant '{}'", userId, exception);
+            return List.of();
+        }
+        return statusEmbeds;
     }
 
     @Override

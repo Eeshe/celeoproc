@@ -9,6 +9,7 @@ import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.config.Message;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
+import me.eeshe.celeoproc.service.RegistryChannelService;
 import me.eeshe.celeoproc.service.UserElectricityStatusService;
 import me.eeshe.celeoproc.util.DurationParser;
 import net.dv8tion.jda.api.components.label.Label;
@@ -24,25 +25,31 @@ import net.dv8tion.jda.api.modals.Modal;
 public final class ElectricityStatusEmbedListener extends ListenerAdapter {
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
     private final UserElectricityStatusService userElectricityStatusService;
+    private final RegistryChannelService registryChannelService;
     private final MessageService messageService;
     private final AppSettings appSettings;
 
     public ElectricityStatusEmbedListener(
             final ElectricityStatusEmbedService electricityStatusEmbedService,
             final UserElectricityStatusService userElectricityStatusService,
+            final RegistryChannelService registryChannelService,
             final MessageService messageService,
             final AppSettings appSettings) {
         this.electricityStatusEmbedService = Objects.requireNonNull(electricityStatusEmbedService,
                 "ElectricityStatusEmbedService must not be null");
         this.userElectricityStatusService = Objects.requireNonNull(userElectricityStatusService,
                 "UserElectricityStatusService must not be null");
+        this.registryChannelService = Objects.requireNonNull(registryChannelService,
+                "RegistryChannelService must not be null");
         this.messageService = Objects.requireNonNull(messageService, "MessageService must not be null");
         this.appSettings = Objects.requireNonNull(appSettings, "AppSettings must not be null");
     }
 
     @Override
     public void onMessageDelete(final MessageDeleteEvent event) {
-        electricityStatusEmbedService.deleteElectricityStatusEmbed(event.getMessageIdLong());
+        final long messageId = event.getMessageIdLong();
+        electricityStatusEmbedService.deleteElectricityStatusEmbed(messageId);
+        registryChannelService.delete(messageId);
     }
 
     @Override

@@ -19,6 +19,13 @@ public enum Message {
     ELECTRICITY_STATUS_EMBED_OUT_MODAL_PLACEHOLDER("electricity_status_embed_out_modal_placeholder"),
     ELECTRICITY_STATUS_INVALID_DURATION("electricity_status_invalid_duration"),
 
+    ELECTRICITY_REGISTRY_OUT("electricity_registry_out"),
+    ELECTRICITY_REGISTRY_IN("electricity_registry_in"),
+    ELECTRICITY_REGISTRY_EMBED_NOT_FOUND("electricity_registry_embed_not_found"),
+    ELECTRICITY_REGISTRY_SET_SUCCESS("electricity_registry_set_success"),
+    ELECTRICITY_REGISTRY_UNSET_NOT_REGISTERED("electricity_registry_unset_not_registered"),
+    ELECTRICITY_REGISTRY_UNSET_SUCCESS("electricity_registry_unset_success"),
+
     ELECTRICITY_STATUS_EMBED_HAS_ELECTRICITY("electricity_status_embed_has_electricity"),
     ELECTRICITY_STATUS_EMBED_OUTAGE_TODAY("electricity_status_embed_outage_today"),
     ELECTRICITY_STATUS_EMBED_NO_ELECTRICITY("electricity_status_embed_no_electricity"),

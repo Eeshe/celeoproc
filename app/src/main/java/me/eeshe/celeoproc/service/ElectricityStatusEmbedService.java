@@ -1,5 +1,8 @@
 package me.eeshe.celeoproc.service;
 
+import java.util.List;
+import java.util.Optional;
+
 import me.eeshe.celeoproc.model.ElectricityStatusEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
@@ -19,6 +22,19 @@ public interface ElectricityStatusEmbedService {
      * @return {@code true} when the embed was sent successfully
      */
     boolean sendElectricityStatusEmbed(TextChannel channel);
+
+    /**
+     * @param messageId id of the Discord message the embed belongs to
+     * @return jump url pointing at the stored embed's message, or an empty optional
+     *         when no stored embed exists for the given message
+     */
+    Optional<String> getJumpUrl(long messageId);
+
+    /**
+     * @param userId id of a participating Discord user
+     * @return every stored embed that lists the user as a participant
+     */
+    List<ElectricityStatusEmbed> getByParticipantId(long userId);
 
     /**
      * Rebuilds the embed from its registered participants and edits the

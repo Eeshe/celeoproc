@@ -20,17 +20,23 @@ import me.eeshe.celeoproc.listener.ElectricityStatusEmbedListener;
 import me.eeshe.celeoproc.registry.CommandRegistry;
 import me.eeshe.celeoproc.registry.impl.CommandRegistryImpl;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
+import me.eeshe.celeoproc.repository.RegistryChannelRepository;
 import me.eeshe.celeoproc.repository.Repository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
 import me.eeshe.celeoproc.repository.impl.ElectricityStatusEmbedRepositoryImpl;
+import me.eeshe.celeoproc.repository.impl.RegistryChannelRepositoryImpl;
 import me.eeshe.celeoproc.repository.impl.UserElectricityStatusRepositoryImpl;
 import me.eeshe.celeoproc.scheduler.BotScheduler;
 import me.eeshe.celeoproc.scheduler.impl.ElectricityStatusEmbedScheduler;
+import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
+import me.eeshe.celeoproc.service.RegistryChannelService;
 import me.eeshe.celeoproc.service.UserElectricityStatusService;
+import me.eeshe.celeoproc.service.impl.ElectricityRegistryServiceImpl;
 import me.eeshe.celeoproc.service.impl.ElectricityStatusEmbedServiceImpl;
 import me.eeshe.celeoproc.service.impl.MessageServiceImpl;
+import me.eeshe.celeoproc.service.impl.RegistryChannelServiceImpl;
 import me.eeshe.celeoproc.service.impl.UserElectricityStatusServiceImpl;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -46,7 +52,9 @@ public final class Bot {
 
     private MessageService messageService;
     private ElectricityStatusEmbedService electricityStatusEmbedService;
+    private ElectricityRegistryService electricityRegistryService;
     private UserElectricityStatusService userElectricityStatusService;
+    private RegistryChannelService registryChannelService;
     private CommandRegistry commandRegistry;
 
     private final List<JsonConfigLoader> configs;
@@ -56,6 +64,7 @@ public final class Bot {
     private Database database;
     private UserElectricityStatusRepository userElectricityStatusRepository;
     private ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
+    private RegistryChannelRepository registryChannelRepository;
 
     public Bot(final AppSettings appSettings, final AppSecrets appSecrets, final AppMessages appMessages) {
         Objects.requireNonNull(appSettings, "AppSettings must not be null");
@@ -88,8 +97,12 @@ public final class Bot {
         this.messageService = new MessageServiceImpl(appMessages);
         this.electricityStatusEmbedService = new ElectricityStatusEmbedServiceImpl(electricityStatusEmbedRepository,
                 userElectricityStatusRepository, messageService, appSettings, bot);
+        this.registryChannelService = new RegistryChannelServiceImpl(registryChannelRepository,
+                electricityStatusEmbedService);
+        this.electricityRegistryService = new ElectricityRegistryServiceImpl(registryChannelService, messageService,
+                bot);
         this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository,
-                electricityStatusEmbedRepository, electricityStatusEmbedService);
+                electricityStatusEmbedRepository, electricityStatusEmbedService, electricityRegistryService);
     }
 
     private void initializeSchedulers() {
@@ -102,13 +115,14 @@ public final class Bot {
     }
 
     private void initializeRegistries() {
-        this.commandRegistry = new CommandRegistryImpl(messageService, electricityStatusEmbedService, this);
+        this.commandRegistry = new CommandRegistryImpl(messageService, electricityStatusEmbedService,
+                registryChannelService, this);
     }
 
     private void registerListeners() {
         bot.addEventListener(new CommandListener(commandRegistry));
         bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService,
-                userElectricityStatusService, messageService, appSettings));
+                userElectricityStatusService, registryChannelService, messageService, appSettings));
     }
 
     private void registerCommands() {
@@ -150,6 +164,9 @@ public final class Bot {
 
         this.electricityStatusEmbedRepository = new ElectricityStatusEmbedRepositoryImpl(database);
         electricityStatusEmbedRepository.initialize();
+
+        this.registryChannelRepository = new RegistryChannelRepositoryImpl(database);
+        registryChannelRepository.initialize();
     }
 
     public AppSettings getAppSettings() {
@@ -166,6 +183,14 @@ public final class Bot {
 
     public ElectricityStatusEmbedService getElectricityStatusEmbedService() {
         return electricityStatusEmbedService;
+    }
+
+    public RegistryChannelService getRegistryChannelService() {
+        return registryChannelService;
+    }
+
+    public ElectricityRegistryService getElectricityRegistryService() {
+        return electricityRegistryService;
     }
 
     public UserElectricityStatusService getUserElectricityStatusService() {
@@ -196,6 +221,10 @@ public final class Bot {
         return electricityStatusEmbedRepository;
     }
 
+    public RegistryChannelRepository getRegistryChannelRepository() {
+        return registryChannelRepository;
+    }
+
     public void shutdown() {
         for (final BotScheduler scheduler : botSchedulers) {
             scheduler.shutdown();
@@ -210,6 +239,7 @@ public final class Bot {
     private void shutdownRepositories() {
         shutdownRepository(userElectricityStatusRepository);
         shutdownRepository(electricityStatusEmbedRepository);
+        shutdownRepository(registryChannelRepository);
     }
 
     private void shutdownRepository(final Repository repository) {

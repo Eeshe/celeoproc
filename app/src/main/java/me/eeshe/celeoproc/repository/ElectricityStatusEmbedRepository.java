@@ -26,6 +26,12 @@ public interface ElectricityStatusEmbedRepository extends Repository {
     Optional<ElectricityStatusEmbed> get(long messageId);
 
     /**
+     * @param userId id of a participating Discord user
+     * @return every stored embed that lists the user as a participant
+     */
+    List<ElectricityStatusEmbed> getByParticipantId(long userId);
+
+    /**
      * @param updatedAtOrBefore instant to compare against each embed's last update
      * @return every stored embed whose {@code updated_at} is at or before the given
      *         instant

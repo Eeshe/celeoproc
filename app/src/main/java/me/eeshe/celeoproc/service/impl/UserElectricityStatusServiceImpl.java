@@ -9,6 +9,7 @@ import me.eeshe.celeoproc.model.ElectricityStatusEmbed;
 import me.eeshe.celeoproc.model.UserElectricityStatus;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
+import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.UserElectricityStatusService;
 
@@ -16,17 +17,21 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
     private final UserElectricityStatusRepository userElectricityStatusRepository;
     private final ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
+    private final ElectricityRegistryService electricityRegistryService;
 
     public UserElectricityStatusServiceImpl(
             final UserElectricityStatusRepository userElectricityStatusRepository,
             final ElectricityStatusEmbedRepository electricityStatusEmbedRepository,
-            final ElectricityStatusEmbedService electricityStatusEmbedService) {
+            final ElectricityStatusEmbedService electricityStatusEmbedService,
+            final ElectricityRegistryService electricityRegistryService) {
         this.userElectricityStatusRepository = Objects.requireNonNull(userElectricityStatusRepository,
                 "UserElectricityStatusRepository must not be null");
         this.electricityStatusEmbedRepository = Objects.requireNonNull(electricityStatusEmbedRepository,
                 "ElectricityStatusEmbedRepository must not be null");
         this.electricityStatusEmbedService = Objects.requireNonNull(electricityStatusEmbedService,
                 "ElectricityStatusEmbedService must not be null");
+        this.electricityRegistryService = Objects.requireNonNull(electricityRegistryService,
+                "ElectricityRegistryService must not be null");
     }
 
     @Override
@@ -40,7 +45,9 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
                 .orElseGet(() -> new UserElectricityStatus(userId, nickname, null, null, null));
         status.setElectricityIn(Instant.now());
         userElectricityStatusRepository.save(status);
-        updateElectricityStatusEmbed(embedMessageId, userId);
+        updateParticipantEmbeds(embedMessageId, userId);
+        electricityRegistryService.sendElectricityIn(userId, status.getNickname(), status.getElectricityOut(),
+                status.getElectricityIn());
         return true;
     }
 
@@ -64,7 +71,8 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
         status.setElectricityInEstimate(now.plus(electricityInEstimate));
 
         userElectricityStatusRepository.save(status);
-        updateElectricityStatusEmbed(embedMessageId, userId);
+        updateParticipantEmbeds(embedMessageId, userId);
+        electricityRegistryService.sendElectricityOut(userId, status.getNickname(), status.getElectricityIn());
         return true;
     }
 
@@ -87,6 +95,16 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
         statusEmbed.addParticipant(userId);
         electricityStatusEmbedService.updateElectricityStatusEmbed(statusEmbed);
         return true;
+    }
+
+    private void updateParticipantEmbeds(final long messageId, final long userId) {
+        updateElectricityStatusEmbed(messageId, userId);
+        for (final ElectricityStatusEmbed statusEmbed : electricityStatusEmbedService.getByParticipantId(userId)) {
+            if (statusEmbed.getMessageId() == messageId) {
+                continue;
+            }
+            electricityStatusEmbedService.updateElectricityStatusEmbed(statusEmbed);
+        }
     }
 
     private void updateElectricityStatusEmbed(final long messageId, final long userId) {

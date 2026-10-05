@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -18,6 +19,8 @@ import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
+import me.eeshe.celeoproc.util.DurationFormatter;
+import me.eeshe.celeoproc.util.MessageLinkFormatter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
@@ -29,6 +32,7 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     private static final Logger LOGGER = LoggerFactory.getLogger(ElectricityStatusEmbedServiceImpl.class);
 
     private static final String TITLE = "Electricity Tracker";
+    private static final String FOOTER_FORMAT = "Embed ID: %d";
 
     private final ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
     private final UserElectricityStatusRepository userElectricityStatusRepository;
@@ -58,9 +62,19 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         final long channelId = channel.getIdLong();
         final long guildId = channel.getGuild().getIdLong();
 
-        channel.sendMessageEmbeds(buildElectricityStatusEmbed(List.of()))
+        channel.sendMessageEmbeds(buildElectricityStatusEmbed(List.of(), 0L))
                 .addComponents(buildButtons())
-                .queue(message -> saveEmbed(message.getIdLong(), guildId, channelId),
+                .queue(message -> {
+                    final long messageId = message.getIdLong();
+                    saveEmbed(messageId, guildId, channelId);
+                    message.editMessageEmbeds(buildElectricityStatusEmbed(List.of(), messageId))
+                            .queue(
+                                    ignored -> {
+                                    },
+                                    throwable -> LOGGER.error(
+                                            "Failed to set the footer on electricity status embed for message '{}'",
+                                            messageId, throwable));
+                },
                         throwable -> LOGGER.error(
                                 "Failed to send electricity status embed to channel '{}'", channelId, throwable));
         return true;
@@ -76,12 +90,12 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
                     statusEmbed.getChannelId());
             return false;
         }
+        statusEmbed.refreshUpdatedAt();
+        electricityStatusEmbedRepository.save(statusEmbed);
         channel.editMessageEmbedsById(statusEmbed.getMessageId(),
-                buildElectricityStatusEmbed(statusEmbed.getParticipantUserIds()))
+                buildElectricityStatusEmbed(statusEmbed.getParticipantUserIds(), statusEmbed.getMessageId()))
                 .queue(
-                        editedMessage -> {
-                            statusEmbed.refreshUpdatedAt();
-                            electricityStatusEmbedRepository.save(statusEmbed);
+                        ignored -> {
                         },
                         throwable -> LOGGER.error(
                                 "Failed to update electricity status embed for message '{}'",
@@ -94,7 +108,18 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         electricityStatusEmbedRepository.delete(messageId);
     }
 
-    private MessageEmbed buildElectricityStatusEmbed(final List<Long> participantUserIds) {
+    @Override
+    public Optional<String> getJumpUrl(final long messageId) {
+        return electricityStatusEmbedRepository.get(messageId)
+                .map(embed -> MessageLinkFormatter.jumpUrl(embed.getGuildId(), embed.getChannelId(), messageId));
+    }
+
+    @Override
+    public List<ElectricityStatusEmbed> getByParticipantId(final long userId) {
+        return electricityStatusEmbedRepository.getByParticipantId(userId);
+    }
+
+    private MessageEmbed buildElectricityStatusEmbed(final List<Long> participantUserIds, final long messageId) {
         final String description = userElectricityStatusRepository.get(participantUserIds).stream()
                 .map(this::formatParticipant)
                 .collect(Collectors.joining("\n\n"));
@@ -102,6 +127,9 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         final EmbedBuilder builder = new EmbedBuilder().setTitle(TITLE);
         if (!description.isBlank()) {
             builder.setDescription(description);
+        }
+        if (messageId > 0L) {
+            builder.setFooter(FOOTER_FORMAT.formatted(messageId));
         }
         return builder.build();
     }
@@ -156,26 +184,7 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     }
 
     private String formatRelativeTime(final Instant from) {
-        return formatDuration(Duration.between(from, Instant.now()));
-    }
-
-    private String formatDuration(final Duration duration) {
-        final long totalMinutes = Math.max(0L, duration.toMinutes());
-        final long days = totalMinutes / (24 * 60);
-        final long hours = (totalMinutes % (24 * 60)) / 60;
-        final long minutes = totalMinutes % 60;
-
-        final StringBuilder builder = new StringBuilder();
-        if (days > 0) {
-            builder.append(days).append('d');
-        }
-        if (hours > 0) {
-            builder.append(hours).append('h');
-        }
-        if (minutes > 0 || builder.length() == 0) {
-            builder.append(minutes).append('m');
-        }
-        return builder.toString();
+        return DurationFormatter.format(Duration.between(from, Instant.now()));
     }
 
     private void saveEmbed(final long messageId, final long guildId, final long channelId) {
