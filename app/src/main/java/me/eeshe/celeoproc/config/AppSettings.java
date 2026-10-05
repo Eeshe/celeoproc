@@ -13,10 +13,12 @@ import me.eeshe.celeoproc.util.DurationParser;
 
 public final class AppSettings extends JsonConfigLoader {
     private static final Duration DEFAULT_ELECTRICITY_OUT_ESTIMATE = Duration.ofHours(6);
+    private static final Duration DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY = Duration.ofMinutes(5);
 
     private List<Long> guildIds = List.of();
     private ZoneId timezone = ZoneId.systemDefault();
     private Duration defaultElectricityOutEstimate = DEFAULT_ELECTRICITY_OUT_ESTIMATE;
+    private Duration electricityStatusEmbedUpdateFrequency = DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY;
 
     public AppSettings() {
         super("settings", "config", "settings.json", "/settings.json", "SETTINGS_PATH");
@@ -27,6 +29,7 @@ public final class AppSettings extends JsonConfigLoader {
         this.guildIds = loadGuildIds(root);
         this.timezone = loadTimezone(root);
         this.defaultElectricityOutEstimate = loadDefaultElectricityOutEstimate(root);
+        this.electricityStatusEmbedUpdateFrequency = loadElectricityStatusEmbedUpdateFrequency(root);
     }
 
     public List<Long> getGuildIds() {
@@ -39,6 +42,10 @@ public final class AppSettings extends JsonConfigLoader {
 
     public Duration getDefaultElectricityOutEstimate() {
         return defaultElectricityOutEstimate;
+    }
+
+    public Duration getElectricityStatusEmbedUpdateFrequency() {
+        return electricityStatusEmbedUpdateFrequency;
     }
 
     private List<Long> loadGuildIds(final JsonNode root) {
@@ -90,5 +97,25 @@ public final class AppSettings extends JsonConfigLoader {
             throw new IllegalStateException(
                     "Setting '%s' contains an invalid duration '%s'".formatted(path, node.asText()), exception);
         }
+    }
+
+    private Duration loadElectricityStatusEmbedUpdateFrequency(final JsonNode root) {
+        final String path = "electricity-status-embed-update-frequency";
+        final JsonNode node = root.path(path);
+        if (node.isMissingNode() || node.isNull() || node.asText().isBlank()) {
+            return DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY;
+        }
+
+        final Duration duration;
+        try {
+            duration = DurationParser.parse(node.asText());
+        } catch (final DateTimeParseException exception) {
+            throw new IllegalStateException(
+                    "Setting '%s' contains an invalid duration '%s'".formatted(path, node.asText()), exception);
+        }
+        if (duration.isZero() || duration.isNegative()) {
+            throw new IllegalStateException("Setting '%s' must be greater than zero".formatted(path));
+        }
+        return duration;
     }
 }

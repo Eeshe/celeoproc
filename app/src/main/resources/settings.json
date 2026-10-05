@@ -3,5 +3,6 @@
         "000000000000000000",
         "111111111111111111"
     ],
-    "default-electricity-out-estimate": "6h"
+    "default-electricity-out-estimate": "6h",
+    "electricity-status-embed-update-frequency": "5m"
 }

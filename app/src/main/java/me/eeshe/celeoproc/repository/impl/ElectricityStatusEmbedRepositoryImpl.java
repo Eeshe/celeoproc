@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,9 +78,13 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
             TABLE,
             COLUMN_MESSAGE_ID);
 
-    private static final String GET_ALL_SQL = "SELECT %s FROM %s".formatted(
+    private static final String GET_STALE_SQL = "SELECT %s FROM %s WHERE %s <= ?".formatted(
             SELECT_COLUMNS,
-            TABLE);
+            TABLE,
+            COLUMN_UPDATED_AT);
+
+    private static final String CREATE_UPDATED_AT_INDEX_SQL = "CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s)"
+            .formatted(TABLE, COLUMN_UPDATED_AT, TABLE, COLUMN_UPDATED_AT);
 
     private static final String DELETE_SQL = "DELETE FROM %s WHERE %s = ?".formatted(
             TABLE,
@@ -95,8 +100,10 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
     public void initialize() throws SQLException {
         LOGGER.info("Initializing '{}' table...", TABLE);
         try (Connection connection = database.getConnection();
-                PreparedStatement statement = connection.prepareStatement(CREATE_TABLE_SQL)) {
+                PreparedStatement statement = connection.prepareStatement(CREATE_TABLE_SQL);
+                PreparedStatement indexStatement = connection.prepareStatement(CREATE_UPDATED_AT_INDEX_SQL)) {
             statement.executeUpdate();
+            indexStatement.executeUpdate();
         }
         LOGGER.info("Successfully initialized '{}' table", TABLE);
     }
@@ -150,16 +157,21 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
     }
 
     @Override
-    public List<ElectricityStatusEmbed> getAll() {
+    public List<ElectricityStatusEmbed> getStaleEmbeds(final Instant updatedAtOrBefore) {
+        Objects.requireNonNull(updatedAtOrBefore, "Updated at must not be null");
+
         final List<ElectricityStatusEmbed> statusEmbeds = new ArrayList<>();
         try (Connection connection = database.getConnection();
-                PreparedStatement statement = connection.prepareStatement(GET_ALL_SQL);
-                ResultSet resultSet = statement.executeQuery()) {
-            while (resultSet.next()) {
-                statusEmbeds.add(mapRow(resultSet));
+                PreparedStatement statement = connection.prepareStatement(GET_STALE_SQL)) {
+            JdbcTypeMapper.setInstant(statement, 1, updatedAtOrBefore);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    statusEmbeds.add(mapRow(resultSet));
+                }
             }
         } catch (final SQLException exception) {
-            LOGGER.error("Failed to load embeds", exception);
+            LOGGER.error("Failed to load stale embeds", exception);
             return List.of();
         }
         return statusEmbeds;

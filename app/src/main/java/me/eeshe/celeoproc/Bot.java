@@ -1,6 +1,7 @@
 package me.eeshe.celeoproc;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -16,13 +17,15 @@ import me.eeshe.celeoproc.database.Database;
 import me.eeshe.celeoproc.database.impl.PostgreSQLDatabase;
 import me.eeshe.celeoproc.listener.CommandListener;
 import me.eeshe.celeoproc.listener.ElectricityStatusEmbedListener;
+import me.eeshe.celeoproc.registry.CommandRegistry;
+import me.eeshe.celeoproc.registry.impl.CommandRegistryImpl;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.Repository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
 import me.eeshe.celeoproc.repository.impl.ElectricityStatusEmbedRepositoryImpl;
 import me.eeshe.celeoproc.repository.impl.UserElectricityStatusRepositoryImpl;
-import me.eeshe.celeoproc.registry.CommandRegistry;
-import me.eeshe.celeoproc.registry.impl.CommandRegistryImpl;
+import me.eeshe.celeoproc.scheduler.BotScheduler;
+import me.eeshe.celeoproc.scheduler.impl.ElectricityStatusEmbedScheduler;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.UserElectricityStatusService;
@@ -47,6 +50,7 @@ public final class Bot {
     private CommandRegistry commandRegistry;
 
     private final List<JsonConfigLoader> configs;
+    private final List<BotScheduler> botSchedulers = new ArrayList<>();
 
     private JDA bot;
     private Database database;
@@ -72,6 +76,7 @@ public final class Bot {
         bot.awaitReady();
 
         initializeServices();
+        initializeSchedulers();
         initializeRegistries();
         registerCommands();
         registerListeners();
@@ -81,8 +86,19 @@ public final class Bot {
 
     private void initializeServices() {
         this.messageService = new MessageServiceImpl(appMessages);
-        this.electricityStatusEmbedService = new ElectricityStatusEmbedServiceImpl(electricityStatusEmbedRepository, userElectricityStatusRepository, messageService, appSettings, bot);
-        this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository, electricityStatusEmbedRepository, electricityStatusEmbedService);
+        this.electricityStatusEmbedService = new ElectricityStatusEmbedServiceImpl(electricityStatusEmbedRepository,
+                userElectricityStatusRepository, messageService, appSettings, bot);
+        this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository,
+                electricityStatusEmbedRepository, electricityStatusEmbedService);
+    }
+
+    private void initializeSchedulers() {
+        botSchedulers.add(new ElectricityStatusEmbedScheduler(
+                appSettings, electricityStatusEmbedRepository, electricityStatusEmbedService));
+
+        for (final BotScheduler scheduler : botSchedulers) {
+            scheduler.start();
+        }
     }
 
     private void initializeRegistries() {
@@ -91,7 +107,8 @@ public final class Bot {
 
     private void registerListeners() {
         bot.addEventListener(new CommandListener(commandRegistry));
-        bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService, userElectricityStatusService, messageService, appSettings));
+        bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService,
+                userElectricityStatusService, messageService, appSettings));
     }
 
     private void registerCommands() {
@@ -180,6 +197,9 @@ public final class Bot {
     }
 
     public void shutdown() {
+        for (final BotScheduler scheduler : botSchedulers) {
+            scheduler.shutdown();
+        }
         if (bot != null) {
             bot.shutdown();
         }
