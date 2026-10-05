@@ -117,15 +117,9 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     }
 
     private String formatWithElectricity(final UserElectricityStatus status) {
-        final String header = messageService.get(Message.ELECTRICITY_STATUS_EMBED_HAS_ELECTRICITY,
-                Map.of("nickname", status.getNickname()));
-        if (status.getElectricityOut() == null) {
-            return header;
-        }
-
-        final String lastOut = messageService.get(Message.ELECTRICITY_STATUS_EMBED_LAST_ELECTRICITY_OUT,
-                Map.of("duration", formatRelativeTime(status.getElectricityOut())));
-        return header + "\n" + lastOut;
+        return messageService.get(Message.ELECTRICITY_STATUS_EMBED_HAS_ELECTRICITY, Map.of(
+                "nickname", status.getNickname(),
+                "time_since_electricity_outage_relative", formatRelativeTime(status.getElectricityIn())));
     }
 
     private String formatWithOutageToday(final UserElectricityStatus status) {

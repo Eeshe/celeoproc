@@ -20,7 +20,6 @@ public enum Message {
     ELECTRICITY_STATUS_INVALID_DURATION("electricity_status_invalid_duration"),
 
     ELECTRICITY_STATUS_EMBED_HAS_ELECTRICITY("electricity_status_embed_has_electricity"),
-    ELECTRICITY_STATUS_EMBED_LAST_ELECTRICITY_OUT("electricity_status_embed_last_electricity_out"),
     ELECTRICITY_STATUS_EMBED_OUTAGE_TODAY("electricity_status_embed_outage_today"),
     ELECTRICITY_STATUS_EMBED_NO_ELECTRICITY("electricity_status_embed_no_electricity"),
 
