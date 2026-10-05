@@ -14,6 +14,10 @@ public enum Message {
     ELECTRICITY_STATUS_EMBED_BUTTON_IN("electricity_status_embed_button_in"),
     ELECTRICITY_STATUS_ALREADY_HAS_ELECTRICITY("electricity_status_already_has_electricity"),
     ELECTRICITY_STATUS_ALREADY_NO_ELECTRICITY("electricity_status_already_no_electricity"),
+    ELECTRICITY_STATUS_EMBED_OUT_MODAL_TITLE("electricity_status_embed_out_modal_title"),
+    ELECTRICITY_STATUS_EMBED_OUT_MODAL_LABEL("electricity_status_embed_out_modal_label"),
+    ELECTRICITY_STATUS_EMBED_OUT_MODAL_PLACEHOLDER("electricity_status_embed_out_modal_placeholder"),
+    ELECTRICITY_STATUS_INVALID_DURATION("electricity_status_invalid_duration"),
 
     ELECTRICITY_STATUS_EMBED_HAS_ELECTRICITY("electricity_status_embed_has_electricity"),
     ELECTRICITY_STATUS_EMBED_LAST_ELECTRICITY_OUT("electricity_status_embed_last_electricity_out"),

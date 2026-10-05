@@ -2,5 +2,6 @@
     "guild-ids": [
         "000000000000000000",
         "111111111111111111"
-    ]
+    ],
+    "default-electricity-out-estimate": "6h"
 }

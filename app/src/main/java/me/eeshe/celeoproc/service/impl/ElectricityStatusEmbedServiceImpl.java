@@ -145,8 +145,12 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
 
     private ActionRow buildButtons() {
         return ActionRow.of(
-                Button.danger(BUTTON_OUT_ID, messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_OUT)),
-                Button.success(BUTTON_IN_ID, messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_IN)));
+                Button.danger(
+                        ELECTRICITY_OUT_BUTTON_ID,
+                        messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_OUT)),
+                Button.success(
+                        ELECTRICITY_IN_BUTTON_ID,
+                        messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_IN)));
     }
 
     private String formatTimestamp(final Instant instant) {

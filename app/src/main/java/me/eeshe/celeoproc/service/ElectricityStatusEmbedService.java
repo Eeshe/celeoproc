@@ -7,8 +7,10 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
  * Sends the electricity status embed to Discord channels.
  */
 public interface ElectricityStatusEmbedService {
-    String BUTTON_OUT_ID = "electricity_status_embed_button_out";
-    String BUTTON_IN_ID = "electricity_status_embed_button_in";
+    String ELECTRICITY_OUT_BUTTON_ID = "electricity_status_embed_button_out";
+    String ELECTRICITY_IN_BUTTON_ID = "electricity_status_embed_button_in";
+    String ELECTRICITY_OUT_MODAL_ID = "electricity_status_embed_out_modal";
+    String ELECTRICITY_IN_ESTIMATE_INPUT_ID = "electricity_status_embed_out_modal_input";
 
     /**
      * Sends the electricity status embed to the given channel.

@@ -1,5 +1,6 @@
 package me.eeshe.celeoproc.service.impl;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,20 +48,31 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
     public boolean setUserElectricityOut(
             final long userId,
             final String nickname,
-            final Instant electricityInEstimate,
+            final Duration electricityInEstimate,
             final long embedMessageId) {
         final Optional<UserElectricityStatus> existing = userElectricityStatusRepository.get(userId);
         if (existing.isPresent() && !existing.get().hasElectricity()) {
             return addParticipantIfAbsent(embedMessageId, userId);
         }
 
+        Objects.requireNonNull(electricityInEstimate, "Electricity in estimate must not be null");
         final UserElectricityStatus status = existing
                 .orElseGet(() -> new UserElectricityStatus(userId, nickname, null, null, null));
-        status.setElectricityOut(Instant.now());
-        status.setElectricityInEstimate(Instant.now().plusSeconds(3600)); // TODO: Change
+        final Instant now = Instant.now();
+
+        status.setElectricityOut(now);
+        status.setElectricityInEstimate(now.plus(electricityInEstimate));
+
         userElectricityStatusRepository.save(status);
         updateElectricityStatusEmbed(embedMessageId, userId);
         return true;
+    }
+
+    @Override
+    public boolean hasNoElectricity(final long userId) {
+        return userElectricityStatusRepository.get(userId)
+                .map(userStatus -> !userStatus.hasElectricity())
+                .orElse(false);
     }
 
     private boolean addParticipantIfAbsent(final long messageId, final long userId) {

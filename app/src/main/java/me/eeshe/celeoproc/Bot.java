@@ -91,7 +91,7 @@ public final class Bot {
 
     private void registerListeners() {
         bot.addEventListener(new CommandListener(commandRegistry));
-        bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService, userElectricityStatusService, messageService));
+        bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService, userElectricityStatusService, messageService, appSettings));
     }
 
     private void registerCommands() {
