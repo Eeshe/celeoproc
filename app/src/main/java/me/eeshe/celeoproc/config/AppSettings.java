@@ -14,11 +14,13 @@ import me.eeshe.celeoproc.util.DurationParser;
 public final class AppSettings extends JsonConfigLoader {
     private static final Duration DEFAULT_ELECTRICITY_OUT_ESTIMATE = Duration.ofHours(6);
     private static final Duration DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY = Duration.ofMinutes(5);
+    private static final Duration DEFAULT_ELECTRICITY_REMINDER_FREQUENCY = Duration.ofHours(2);
 
     private List<Long> guildIds = List.of();
     private ZoneId timezone = ZoneId.systemDefault();
     private Duration defaultElectricityOutEstimate = DEFAULT_ELECTRICITY_OUT_ESTIMATE;
     private Duration electricityStatusEmbedUpdateFrequency = DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY;
+    private Duration electricityReminderFrequency = DEFAULT_ELECTRICITY_REMINDER_FREQUENCY;
 
     public AppSettings() {
         super("settings", "config", "settings.json", "/settings.json", "SETTINGS_PATH");
@@ -30,6 +32,7 @@ public final class AppSettings extends JsonConfigLoader {
         this.timezone = loadTimezone(root);
         this.defaultElectricityOutEstimate = loadDefaultElectricityOutEstimate(root);
         this.electricityStatusEmbedUpdateFrequency = loadElectricityStatusEmbedUpdateFrequency(root);
+        this.electricityReminderFrequency = loadElectricityReminderFrequency(root);
     }
 
     public List<Long> getGuildIds() {
@@ -46,6 +49,10 @@ public final class AppSettings extends JsonConfigLoader {
 
     public Duration getElectricityStatusEmbedUpdateFrequency() {
         return electricityStatusEmbedUpdateFrequency;
+    }
+
+    public Duration getElectricityReminderFrequency() {
+        return electricityReminderFrequency;
     }
 
     private List<Long> loadGuildIds(final JsonNode root) {
@@ -86,24 +93,27 @@ public final class AppSettings extends JsonConfigLoader {
     }
 
     private Duration loadDefaultElectricityOutEstimate(final JsonNode root) {
-        final String path = "default-electricity-out-estimate";
-        final JsonNode node = root.path(path);
-        if (node.isMissingNode() || node.isNull() || node.asText().isBlank()) {
-            return DEFAULT_ELECTRICITY_OUT_ESTIMATE;
-        }
-        try {
-            return DurationParser.parse(node.asText());
-        } catch (final DateTimeParseException exception) {
-            throw new IllegalStateException(
-                    "Setting '%s' contains an invalid duration '%s'".formatted(path, node.asText()), exception);
-        }
+        return loadDuration(root, "default-electricity-out-estimate", DEFAULT_ELECTRICITY_OUT_ESTIMATE);
     }
 
     private Duration loadElectricityStatusEmbedUpdateFrequency(final JsonNode root) {
-        final String path = "electricity-status-embed-update-frequency";
+        return loadDuration(root, "electricity-status-embed-update-frequency",
+                DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY, true);
+    }
+
+    private Duration loadElectricityReminderFrequency(final JsonNode root) {
+        return loadDuration(root, "electricity-reminder-frequency", DEFAULT_ELECTRICITY_REMINDER_FREQUENCY, true);
+    }
+
+    private Duration loadDuration(final JsonNode root, final String path, final Duration defaultValue) {
+        return loadDuration(root, path, defaultValue, false);
+    }
+
+    private Duration loadDuration(final JsonNode root, final String path, final Duration defaultValue,
+            final boolean requirePositive) {
         final JsonNode node = root.path(path);
         if (node.isMissingNode() || node.isNull() || node.asText().isBlank()) {
-            return DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY;
+            return defaultValue;
         }
 
         final Duration duration;
@@ -113,7 +123,7 @@ public final class AppSettings extends JsonConfigLoader {
             throw new IllegalStateException(
                     "Setting '%s' contains an invalid duration '%s'".formatted(path, node.asText()), exception);
         }
-        if (duration.isZero() || duration.isNegative()) {
+        if (requirePositive && (duration.isZero() || duration.isNegative())) {
             throw new IllegalStateException("Setting '%s' must be greater than zero".formatted(path));
         }
         return duration;

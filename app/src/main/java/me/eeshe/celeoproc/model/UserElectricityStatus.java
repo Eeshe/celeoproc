@@ -20,18 +20,26 @@ public final class UserElectricityStatus {
     private Instant electricityIn;
     private Instant electricityOut;
     private Instant electricityInEstimate;
+    private Instant lastReminderAt;
 
     public UserElectricityStatus(
             final long userId,
             final String nickname,
             final Instant electricityIn,
             final Instant electricityOut,
-            final Instant electricityInEstimate) {
+            final Instant electricityInEstimate,
+            final Instant lastReminderAt) {
         this.userId = userId;
         this.nickname = Objects.requireNonNull(nickname, "Nickname must not be null");
         this.electricityIn = electricityIn;
         this.electricityOut = electricityOut;
         this.electricityInEstimate = electricityInEstimate;
+        this.lastReminderAt = lastReminderAt;
+    }
+
+    public UserElectricityStatus(long userId, String nickname) {
+        this.userId = userId;
+        this.nickname = nickname;
     }
 
     public long getUserId() {
@@ -68,6 +76,14 @@ public final class UserElectricityStatus {
 
     public void setElectricityInEstimate(final Instant electricityInEstimate) {
         this.electricityInEstimate = electricityInEstimate;
+    }
+
+    public Instant getLastReminderAt() {
+        return lastReminderAt;
+    }
+
+    public void setLastReminderAt(final Instant lastReminderAt) {
+        this.lastReminderAt = lastReminderAt;
     }
 
     /**
@@ -114,7 +130,7 @@ public final class UserElectricityStatus {
 
     @Override
     public String toString() {
-        return "UserElectricityStatus{userId=%d, nickname='%s', electricityIn=%s, electricityOut=%s, electricityInEstimate=%s}"
-                .formatted(userId, nickname, electricityIn, electricityOut, electricityInEstimate);
+        return "UserElectricityStatus{userId=%d, nickname='%s', electricityIn=%s, electricityOut=%s, electricityInEstimate=%s, lastReminderAt=%s}"
+                .formatted(userId, nickname, electricityIn, electricityOut, electricityInEstimate, lastReminderAt);
     }
 }

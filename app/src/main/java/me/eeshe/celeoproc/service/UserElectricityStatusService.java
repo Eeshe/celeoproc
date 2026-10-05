@@ -1,6 +1,9 @@
 package me.eeshe.celeoproc.service;
 
 import java.time.Duration;
+import java.util.List;
+
+import me.eeshe.celeoproc.model.UserElectricityStatus;
 
 /**
  * Tracks the electricity status of Discord users.
@@ -38,4 +41,16 @@ public interface UserElectricityStatusService {
      * @return {@code true} when the user has a stored status without electricity
      */
     boolean hasNoElectricity(long userId);
+
+    /**
+     * @return every user without electricity whose last reminder is due
+     */
+    List<UserElectricityStatus> getPendingReminders();
+
+    /**
+     * Marks the given user's reminder as sent and persists the change.
+     *
+     * @param status status whose reminder was sent
+     */
+    void markReminderSent(UserElectricityStatus status);
 }

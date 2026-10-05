@@ -2,9 +2,11 @@ package me.eeshe.celeoproc.service.impl;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.model.ElectricityStatusEmbed;
 import me.eeshe.celeoproc.model.UserElectricityStatus;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
@@ -18,12 +20,14 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
     private final ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
     private final ElectricityRegistryService electricityRegistryService;
+    private final AppSettings appSettings;
 
     public UserElectricityStatusServiceImpl(
             final UserElectricityStatusRepository userElectricityStatusRepository,
             final ElectricityStatusEmbedRepository electricityStatusEmbedRepository,
             final ElectricityStatusEmbedService electricityStatusEmbedService,
-            final ElectricityRegistryService electricityRegistryService) {
+            final ElectricityRegistryService electricityRegistryService,
+            final AppSettings appSettings) {
         this.userElectricityStatusRepository = Objects.requireNonNull(userElectricityStatusRepository,
                 "UserElectricityStatusRepository must not be null");
         this.electricityStatusEmbedRepository = Objects.requireNonNull(electricityStatusEmbedRepository,
@@ -32,6 +36,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
                 "ElectricityStatusEmbedService must not be null");
         this.electricityRegistryService = Objects.requireNonNull(electricityRegistryService,
                 "ElectricityRegistryService must not be null");
+        this.appSettings = Objects.requireNonNull(appSettings, "AppSettings must not be null");
     }
 
     @Override
@@ -42,7 +47,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
         }
 
         final UserElectricityStatus status = existing
-                .orElseGet(() -> new UserElectricityStatus(userId, nickname, null, null, null));
+                .orElseGet(() -> new UserElectricityStatus(userId, nickname, null, null, null, null));
         status.setElectricityIn(Instant.now());
         userElectricityStatusRepository.save(status);
         updateParticipantEmbeds(embedMessageId, userId);
@@ -63,8 +68,8 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
         }
 
         Objects.requireNonNull(electricityInEstimate, "Electricity in estimate must not be null");
-        final UserElectricityStatus status = existing
-                .orElseGet(() -> new UserElectricityStatus(userId, nickname, null, null, null));
+        final UserElectricityStatus status = existing.orElseGet(
+                () -> new UserElectricityStatus(userId, nickname));
         final Instant now = Instant.now();
 
         status.setElectricityOut(now);
@@ -81,6 +86,21 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
         return userElectricityStatusRepository.get(userId)
                 .map(userStatus -> !userStatus.hasElectricity())
                 .orElse(false);
+    }
+
+    @Override
+    public List<UserElectricityStatus> getPendingReminders() {
+        final Instant threshold = Instant.now().minus(appSettings.getElectricityReminderFrequency());
+
+        return userElectricityStatusRepository.getPendingReminders(threshold);
+    }
+
+    @Override
+    public void markReminderSent(final UserElectricityStatus status) {
+        Objects.requireNonNull(status, "UserElectricityStatus must not be null");
+
+        status.setLastReminderAt(Instant.now());
+        userElectricityStatusRepository.save(status);
     }
 
     private boolean addParticipantIfAbsent(final long messageId, final long userId) {

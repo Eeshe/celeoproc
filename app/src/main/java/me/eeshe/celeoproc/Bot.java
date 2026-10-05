@@ -28,6 +28,7 @@ import me.eeshe.celeoproc.repository.impl.RegistryChannelRepositoryImpl;
 import me.eeshe.celeoproc.repository.impl.UserElectricityStatusRepositoryImpl;
 import me.eeshe.celeoproc.scheduler.BotScheduler;
 import me.eeshe.celeoproc.scheduler.impl.ElectricityStatusEmbedScheduler;
+import me.eeshe.celeoproc.scheduler.impl.ReminderScheduler;
 import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
@@ -102,12 +103,15 @@ public final class Bot {
         this.electricityRegistryService = new ElectricityRegistryServiceImpl(registryChannelService, messageService,
                 bot);
         this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository,
-                electricityStatusEmbedRepository, electricityStatusEmbedService, electricityRegistryService);
+                electricityStatusEmbedRepository, electricityStatusEmbedService, electricityRegistryService,
+                appSettings);
     }
 
     private void initializeSchedulers() {
         botSchedulers.add(new ElectricityStatusEmbedScheduler(
                 appSettings, electricityStatusEmbedRepository, electricityStatusEmbedService));
+        botSchedulers.add(new ReminderScheduler(
+                userElectricityStatusService, electricityStatusEmbedService, messageService, bot));
 
         for (final BotScheduler scheduler : botSchedulers) {
             scheduler.start();

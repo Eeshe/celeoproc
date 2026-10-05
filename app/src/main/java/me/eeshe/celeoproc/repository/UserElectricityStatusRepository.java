@@ -1,5 +1,6 @@
 package me.eeshe.celeoproc.repository;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -31,4 +32,13 @@ public interface UserElectricityStatusRepository extends Repository {
      *         input is empty or {@code null}
      */
     List<UserElectricityStatus> get(Collection<Long> userIds);
+
+    /**
+     * @param lastReminderOrBefore instant to compare against each user's last
+     *                             reminder
+     * @return every user without electricity whose last reminder was sent at or
+     *         before the given instant, including users that have never been
+     *         reminded
+     */
+    List<UserElectricityStatus> getPendingReminders(Instant lastReminderOrBefore);
 }
