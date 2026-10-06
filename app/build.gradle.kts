@@ -21,6 +21,7 @@ dependencies {
     implementation(libs.hikaricp)
 
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.testcontainers.postgresql)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

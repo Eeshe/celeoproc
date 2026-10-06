@@ -13,6 +13,7 @@ import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
 import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
+import me.eeshe.celeoproc.service.PowerOutageLogService;
 import me.eeshe.celeoproc.service.UserElectricityStatusService;
 
 public final class UserElectricityStatusServiceImpl implements UserElectricityStatusService {
@@ -20,6 +21,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
     private final ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
     private final ElectricityRegistryService electricityRegistryService;
+    private final PowerOutageLogService powerOutageLogService;
     private final AppSettings appSettings;
 
     public UserElectricityStatusServiceImpl(
@@ -27,6 +29,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
             final ElectricityStatusEmbedRepository electricityStatusEmbedRepository,
             final ElectricityStatusEmbedService electricityStatusEmbedService,
             final ElectricityRegistryService electricityRegistryService,
+            final PowerOutageLogService powerOutageLogService,
             final AppSettings appSettings) {
         this.userElectricityStatusRepository = Objects.requireNonNull(userElectricityStatusRepository,
                 "UserElectricityStatusRepository must not be null");
@@ -36,6 +39,8 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
                 "ElectricityStatusEmbedService must not be null");
         this.electricityRegistryService = Objects.requireNonNull(electricityRegistryService,
                 "ElectricityRegistryService must not be null");
+        this.powerOutageLogService = Objects.requireNonNull(powerOutageLogService,
+                "PowerOutageLogService must not be null");
         this.appSettings = Objects.requireNonNull(appSettings, "AppSettings must not be null");
     }
 
@@ -50,9 +55,12 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
                 .orElseGet(() -> new UserElectricityStatus(userId, nickname, null, null, null, null));
         status.setElectricityIn(Instant.now());
         userElectricityStatusRepository.save(status);
+        if (status.getElectricityOut() != null) {
+            powerOutageLogService.logPowerOutage(userId, status.getElectricityOut(), status.getElectricityIn());
+            electricityRegistryService.sendElectricityIn(userId, status.getNickname(), status.getElectricityOut(),
+                    status.getElectricityIn());
+        }
         updateParticipantEmbeds(embedMessageId, userId);
-        electricityRegistryService.sendElectricityIn(userId, status.getNickname(), status.getElectricityOut(),
-                status.getElectricityIn());
         return true;
     }
 
@@ -74,6 +82,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
 
         status.setElectricityOut(now);
         status.setElectricityInEstimate(now.plus(electricityInEstimate));
+        status.setLastReminderAt(Instant.now());
 
         userElectricityStatusRepository.save(status);
         updateParticipantEmbeds(embedMessageId, userId);
