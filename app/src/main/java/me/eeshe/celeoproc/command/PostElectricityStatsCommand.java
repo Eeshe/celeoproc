@@ -3,15 +3,16 @@ package me.eeshe.celeoproc.command;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import me.eeshe.celeoproc.config.Message;
-import me.eeshe.celeoproc.model.PowerOutageLog;
+import me.eeshe.celeoproc.model.PowerOutageStats;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.PowerOutageLogService;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -47,6 +48,14 @@ public final class PostElectricityStatsCommand implements BotCommand {
 
     @Override
     public void run(final SlashCommandInteractionEvent event) {
+        final Guild guild = event.getGuild();
+        if (guild == null) {
+            event.reply(messageService.get(Message.GUILD_ONLY))
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+
         final String rawStartDate = readOption(event, START_DATE_OPTION);
         final LocalDate startDate = parseDate(rawStartDate);
         if (startDate == null) {
@@ -66,14 +75,27 @@ public final class PostElectricityStatsCommand implements BotCommand {
             return;
         }
 
-        final List<PowerOutageLog> logs = powerOutageLogService.getWithinRange(startDate, endDate);
-        final EmbedBuilder embed = new EmbedBuilder()
-                .setTitle(messageService.get(Message.POST_ELECTRICITY_STATS_EMBED_TITLE))
+        final PowerOutageStats stats = powerOutageLogService.getWithinRange(guild.getIdLong(), startDate, endDate);
+        event.replyEmbeds(
+                buildStatsEmbed(Message.POST_ELECTRICITY_STATS_GUILD_EMBED_TITLE, startDate, endDate,
+                        stats.guildLogs().size()),
+                buildStatsEmbed(Message.POST_ELECTRICITY_STATS_GLOBAL_EMBED_TITLE, startDate, endDate,
+                        stats.globalLogs().size()))
+                .queue();
+    }
+
+    private MessageEmbed buildStatsEmbed(
+            final Message titleMessage,
+            final LocalDate startDate,
+            final LocalDate endDate,
+            final int logCount) {
+        return new EmbedBuilder()
+                .setTitle(messageService.get(titleMessage))
                 .setDescription(messageService.get(Message.POST_ELECTRICITY_STATS_EMBED_DESCRIPTION, Map.of(
                         "start_date", startDate.format(DATE_FORMATTER),
                         "end_date", endDate.format(DATE_FORMATTER),
-                        "log_count", String.valueOf(logs.size()))));
-        event.replyEmbeds(embed.build()).queue();
+                        "log_count", String.valueOf(logCount))))
+                .build();
     }
 
     private String readOption(final SlashCommandInteractionEvent event, final String optionName) {

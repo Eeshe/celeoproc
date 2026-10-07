@@ -28,6 +28,7 @@
   "reload_error": "Failed to reload configuration. Check the bot console for details.",
   "post_electricity_stats_invalid_date": "'{input}' is not a valid date. Use the format YYYY-MM-DD.",
   "post_electricity_stats_invalid_range": "Start date must not be after end date.",
-  "post_electricity_stats_embed_title": "Power Outage Stats",
+  "post_electricity_stats_guild_embed_title": "Server Power Outage Stats",
+  "post_electricity_stats_global_embed_title": "Global Power Outage Stats",
   "post_electricity_stats_embed_description": "Power outages between {start_date} and {end_date}: **{log_count}**"
 }

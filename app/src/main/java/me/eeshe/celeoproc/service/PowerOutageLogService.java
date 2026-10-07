@@ -2,9 +2,9 @@ package me.eeshe.celeoproc.service;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 
 import me.eeshe.celeoproc.model.PowerOutageLog;
+import me.eeshe.celeoproc.model.PowerOutageStats;
 
 /**
  * Tracks ended power outages reported by Discord users.
@@ -23,12 +23,15 @@ public interface PowerOutageLogService {
     PowerOutageLog logPowerOutage(long userId, Instant electricityOut, Instant electricityIn);
 
     /**
+     * @param guildId    id of the Discord guild the stats belong to. Logs are
+     *                   matched against the participants of the guild's
+     *                   electricity status embeds
      * @param rangeStart inclusive start calendar day
      * @param rangeEnd   inclusive end calendar day
-     * @return every log whose outage interval overlaps the given range. Both days
-     *         are interpreted in the timezone configured in {@code AppSettings},
+     * @return the guild's logs and every log within the range. Both days are
+     *         interpreted in the timezone configured in {@code AppSettings},
      *         spanning from the start of {@code rangeStart} to the end of
      *         {@code rangeEnd}
      */
-    List<PowerOutageLog> getWithinRange(LocalDate rangeStart, LocalDate rangeEnd);
+    PowerOutageStats getWithinRange(long guildId, LocalDate rangeStart, LocalDate rangeEnd);
 }

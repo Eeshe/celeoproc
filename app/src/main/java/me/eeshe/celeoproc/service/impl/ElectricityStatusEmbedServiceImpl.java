@@ -119,6 +119,11 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         return electricityStatusEmbedRepository.getByParticipantId(userId);
     }
 
+    @Override
+    public List<ElectricityStatusEmbed> getByGuildId(final long guildId) {
+        return electricityStatusEmbedRepository.getByGuildId(guildId);
+    }
+
     private MessageEmbed buildElectricityStatusEmbed(final List<Long> participantUserIds, final long messageId) {
         final String description = userElectricityStatusRepository.get(participantUserIds).stream()
                 .map(this::formatParticipant)
