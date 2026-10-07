@@ -34,7 +34,12 @@ public enum Message {
 
     BOT_INFO("bot_info"),
     RELOAD_SUCCESS("reload_success"),
-    RELOAD_ERROR("reload_error");
+    RELOAD_ERROR("reload_error"),
+
+    POST_ELECTRICITY_STATS_INVALID_DATE("post_electricity_stats_invalid_date"),
+    POST_ELECTRICITY_STATS_INVALID_RANGE("post_electricity_stats_invalid_range"),
+    POST_ELECTRICITY_STATS_EMBED_TITLE("post_electricity_stats_embed_title"),
+    POST_ELECTRICITY_STATS_EMBED_DESCRIPTION("post_electricity_stats_embed_description");
 
     private final String key;
 

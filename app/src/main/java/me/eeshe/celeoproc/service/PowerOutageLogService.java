@@ -1,6 +1,7 @@
 package me.eeshe.celeoproc.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import me.eeshe.celeoproc.model.PowerOutageLog;
@@ -22,9 +23,12 @@ public interface PowerOutageLogService {
     PowerOutageLog logPowerOutage(long userId, Instant electricityOut, Instant electricityIn);
 
     /**
-     * @param rangeStart inclusive start of the range
-     * @param rangeEnd   inclusive end of the range
-     * @return every log whose outage interval overlaps the given range
+     * @param rangeStart inclusive start calendar day
+     * @param rangeEnd   inclusive end calendar day
+     * @return every log whose outage interval overlaps the given range. Both days
+     *         are interpreted in the timezone configured in {@code AppSettings},
+     *         spanning from the start of {@code rangeStart} to the end of
+     *         {@code rangeEnd}
      */
-    List<PowerOutageLog> getWithinRange(Instant rangeStart, Instant rangeEnd);
+    List<PowerOutageLog> getWithinRange(LocalDate rangeStart, LocalDate rangeEnd);
 }

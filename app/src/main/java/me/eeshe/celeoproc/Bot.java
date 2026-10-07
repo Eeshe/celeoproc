@@ -108,7 +108,7 @@ public final class Bot {
                 electricityStatusEmbedService);
         this.electricityRegistryService = new ElectricityRegistryServiceImpl(registryChannelService, messageService,
                 bot);
-        this.powerOutageLogService = new PowerOutageLogServiceImpl(powerOutageLogRepository);
+        this.powerOutageLogService = new PowerOutageLogServiceImpl(powerOutageLogRepository, appSettings);
         this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository,
                 electricityStatusEmbedRepository, electricityStatusEmbedService, electricityRegistryService,
                 powerOutageLogService, appSettings);
@@ -127,7 +127,7 @@ public final class Bot {
 
     private void initializeRegistries() {
         this.commandRegistry = new CommandRegistryImpl(messageService, electricityStatusEmbedService,
-                registryChannelService, this);
+                registryChannelService, powerOutageLogService, this);
     }
 
     private void registerListeners() {

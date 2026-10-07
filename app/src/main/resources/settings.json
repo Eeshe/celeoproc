@@ -3,6 +3,7 @@
         "000000000000000000",
         "111111111111111111"
     ],
+    "timezone": "America/New_York",
     "default-electricity-out-estimate": "6h",
     "electricity-status-embed-update-frequency": "5m",
     "electricity-reminder-frequency": "2h"

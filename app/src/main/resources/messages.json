@@ -25,5 +25,9 @@
   "electricity_status_reminder": "Do you still have no electricity? If you do, remember to update your status in any of the following embeds:\n\n{embeds}",
   "bot_info": "Celeoproc is a bot",
   "reload_success": "Configuration reloaded successfully.",
-  "reload_error": "Failed to reload configuration. Check the bot console for details."
+  "reload_error": "Failed to reload configuration. Check the bot console for details.",
+  "post_electricity_stats_invalid_date": "'{input}' is not a valid date. Use the format YYYY-MM-DD.",
+  "post_electricity_stats_invalid_range": "Start date must not be after end date.",
+  "post_electricity_stats_embed_title": "Power Outage Stats",
+  "post_electricity_stats_embed_description": "Power outages between {start_date} and {end_date}: **{log_count}**"
 }
