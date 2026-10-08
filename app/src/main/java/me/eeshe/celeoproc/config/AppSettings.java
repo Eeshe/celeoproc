@@ -18,6 +18,7 @@ public final class AppSettings extends JsonConfigLoader {
 
     private List<Long> guildIds = List.of();
     private ZoneId timezone = ZoneId.systemDefault();
+    private String statsImageUrl;
     private Duration defaultElectricityOutEstimate = DEFAULT_ELECTRICITY_OUT_ESTIMATE;
     private Duration electricityStatusEmbedUpdateFrequency = DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY;
     private Duration electricityReminderFrequency = DEFAULT_ELECTRICITY_REMINDER_FREQUENCY;
@@ -30,6 +31,7 @@ public final class AppSettings extends JsonConfigLoader {
     protected void apply(final JsonNode root) {
         this.guildIds = loadGuildIds(root);
         this.timezone = loadTimezone(root);
+        this.statsImageUrl = loadStatsImageUrl(root);
         this.defaultElectricityOutEstimate = loadDefaultElectricityOutEstimate(root);
         this.electricityStatusEmbedUpdateFrequency = loadElectricityStatusEmbedUpdateFrequency(root);
         this.electricityReminderFrequency = loadElectricityReminderFrequency(root);
@@ -41,6 +43,10 @@ public final class AppSettings extends JsonConfigLoader {
 
     public ZoneId getTimezone() {
         return timezone;
+    }
+
+    public String getStatsImageUrl() {
+        return statsImageUrl;
     }
 
     public Duration getDefaultElectricityOutEstimate() {
@@ -90,6 +96,14 @@ public final class AppSettings extends JsonConfigLoader {
             throw new IllegalStateException(
                     "Setting 'timezone' contains an invalid zone id '%s'".formatted(node.asText()), exception);
         }
+    }
+
+    private String loadStatsImageUrl(final JsonNode root) {
+        final JsonNode node = root.path("stats-image-url");
+        if (node.isMissingNode() || node.isNull() || node.asText().isBlank()) {
+            return null;
+        }
+        return node.asText().trim();
     }
 
     private Duration loadDefaultElectricityOutEstimate(final JsonNode root) {

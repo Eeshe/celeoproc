@@ -26,15 +26,13 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
 
     private final String TABLE = "user_electricity_status";
     private final String COLUMN_USER_ID = "user_id";
-    private final String COLUMN_NICKNAME = "nickname";
     private final String COLUMN_ELECTRICITY_IN = "electricity_in";
     private final String COLUMN_ELECTRICITY_OUT = "electricity_out";
     private final String COLUMN_ELECTRICITY_IN_ESTIMATE = "electricity_in_estimate";
     private final String COLUMN_LAST_REMINDER_AT = "last_reminder_at";
 
-    private final String SELECT_COLUMNS = "%s, %s, %s, %s, %s, %s".formatted(
+    private final String SELECT_COLUMNS = "%s, %s, %s, %s, %s".formatted(
             COLUMN_USER_ID,
-            COLUMN_NICKNAME,
             COLUMN_ELECTRICITY_IN,
             COLUMN_ELECTRICITY_OUT,
             COLUMN_ELECTRICITY_IN_ESTIMATE,
@@ -43,7 +41,6 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
     private final String CREATE_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS %s (
                 %s BIGINT PRIMARY KEY,
-                %s TEXT NOT NULL,
                 %s TIMESTAMPTZ,
                 %s TIMESTAMPTZ,
                 %s TIMESTAMPTZ,
@@ -51,7 +48,6 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
             )""".formatted(
             TABLE,
             COLUMN_USER_ID,
-            COLUMN_NICKNAME,
             COLUMN_ELECTRICITY_IN,
             COLUMN_ELECTRICITY_OUT,
             COLUMN_ELECTRICITY_IN_ESTIMATE,
@@ -62,9 +58,8 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
 
     private final String SAVE_SQL = """
             INSERT INTO %s (%s)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT (%s) DO UPDATE SET
-                %s = EXCLUDED.%s,
                 %s = EXCLUDED.%s,
                 %s = EXCLUDED.%s,
                 %s = EXCLUDED.%s,
@@ -72,8 +67,6 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
             TABLE,
             SELECT_COLUMNS,
             COLUMN_USER_ID,
-            COLUMN_NICKNAME,
-            COLUMN_NICKNAME,
             COLUMN_ELECTRICITY_IN,
             COLUMN_ELECTRICITY_IN,
             COLUMN_ELECTRICITY_OUT,
@@ -139,12 +132,11 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
         try (Connection connection = database.getConnection();
                 PreparedStatement statement = connection.prepareStatement(SAVE_SQL)) {
             statement.setLong(1, status.getUserId());
-            statement.setString(2, status.getNickname());
 
-            JdbcTypeMapper.setInstant(statement, 3, status.getElectricityIn());
-            JdbcTypeMapper.setInstant(statement, 4, status.getElectricityOut());
-            JdbcTypeMapper.setInstant(statement, 5, status.getElectricityInEstimate());
-            JdbcTypeMapper.setInstant(statement, 6, status.getLastReminderAt());
+            JdbcTypeMapper.setInstant(statement, 2, status.getElectricityIn());
+            JdbcTypeMapper.setInstant(statement, 3, status.getElectricityOut());
+            JdbcTypeMapper.setInstant(statement, 4, status.getElectricityInEstimate());
+            JdbcTypeMapper.setInstant(statement, 5, status.getLastReminderAt());
 
             statement.executeUpdate();
         } catch (final SQLException exception) {
@@ -232,7 +224,6 @@ public final class UserElectricityStatusRepositoryImpl implements UserElectricit
 
         return new UserElectricityStatus(
                 resultSet.getLong(COLUMN_USER_ID),
-                resultSet.getString(COLUMN_NICKNAME),
                 electricityIn,
                 electricityOut,
                 electricityInEstimate,

@@ -28,7 +28,20 @@
   "reload_error": "Failed to reload configuration. Check the bot console for details.",
   "post_electricity_stats_invalid_date": "'{input}' is not a valid date. Use the format YYYY-MM-DD.",
   "post_electricity_stats_invalid_range": "Start date must not be after end date.",
-  "post_electricity_stats_guild_embed_title": "Server Power Outage Stats",
-  "post_electricity_stats_global_embed_title": "Global Power Outage Stats",
-  "post_electricity_stats_embed_description": "Power outages between {start_date} and {end_date}: **{log_count}**"
+  "electricity_stats_server_title": "Server Electricity Stats",
+  "electricity_stats_server_general_header": "## General Stats",
+  "electricity_stats_server_total_outages": "Total Power Outages: {log_amount}",
+  "electricity_stats_server_total_time": "Total Power Outage Time: **{total_power_outage_time}**",
+  "electricity_stats_server_longest": "Longest Power Outage: {nickname} **{longest_power_outage_time}**",
+  "electricity_stats_server_shortest": "Shortest Power Outage: {nickname} **{shortest_power_outage_time}**",
+  "electricity_stats_server_award": "🏆 Celeoproc Award 🏆: {nickname} ({user_total_power_outages} power outages, for a total of **{user_total_power_outage_time}**)",
+  "electricity_stats_server_user_header": "## User Stats",
+  "electricity_stats_server_user_entry": "### {user_nickname}\nRegistered Power Outages: **{user_log_amount}**\nTotal Power Outage Time: **{total_power_outage_time}**\nAverage Power Outage Time: **{average_power_outage_time}**\nLongest Power Outage Time: **{longest_power_outage_time}**\nShortest Power Outage Time: **{shortest_power_outage_time}**",
+  "electricity_stats_global_title": "Global Electricity Stats",
+  "electricity_stats_global_total_outages": "Total Power Outages: {log_amount}",
+  "electricity_stats_global_total_time": "Total Power Outage Time: **{total_power_outage_time}**",
+  "electricity_stats_global_average_time": "Average Power Outage Time: **{average_power_outage_time}**",
+  "electricity_stats_global_disclaimer": "*These stats are not verified. They are just the collected stats gathered from all servers*",
+  "electricity_stats_server_no_data": "No server power outage data has been collected for this period.",
+  "electricity_stats_global_no_data": "No global power outage data has been collected for this period."
 }

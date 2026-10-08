@@ -45,19 +45,19 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
     }
 
     @Override
-    public boolean setUserElectricityIn(final long userId, final String nickname, final long embedMessageId) {
+    public boolean setUserElectricityIn(final long userId, final long embedMessageId) {
         final Optional<UserElectricityStatus> existing = userElectricityStatusRepository.get(userId);
         if (existing.isPresent() && existing.get().hasElectricity()) {
             return addParticipantIfAbsent(embedMessageId, userId);
         }
 
         final UserElectricityStatus status = existing
-                .orElseGet(() -> new UserElectricityStatus(userId, nickname, null, null, null, null));
+                .orElseGet(() -> new UserElectricityStatus(userId));
         status.setElectricityIn(Instant.now());
         userElectricityStatusRepository.save(status);
         if (status.getElectricityOut() != null) {
             powerOutageLogService.logPowerOutage(userId, status.getElectricityOut(), status.getElectricityIn());
-            electricityRegistryService.sendElectricityIn(userId, status.getNickname(), status.getElectricityOut(),
+            electricityRegistryService.sendElectricityIn(userId, status.getElectricityOut(),
                     status.getElectricityIn());
         }
         updateParticipantEmbeds(embedMessageId, userId);
@@ -67,7 +67,6 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
     @Override
     public boolean setUserElectricityOut(
             final long userId,
-            final String nickname,
             final Duration electricityInEstimate,
             final long embedMessageId) {
         final Optional<UserElectricityStatus> existing = userElectricityStatusRepository.get(userId);
@@ -76,8 +75,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
         }
 
         Objects.requireNonNull(electricityInEstimate, "Electricity in estimate must not be null");
-        final UserElectricityStatus status = existing.orElseGet(
-                () -> new UserElectricityStatus(userId, nickname));
+        final UserElectricityStatus status = existing.orElseGet(() -> new UserElectricityStatus(userId));
         final Instant now = Instant.now();
 
         status.setElectricityOut(now);
@@ -86,7 +84,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
 
         userElectricityStatusRepository.save(status);
         updateParticipantEmbeds(embedMessageId, userId);
-        electricityRegistryService.sendElectricityOut(userId, status.getNickname(), status.getElectricityIn());
+        electricityRegistryService.sendElectricityOut(userId, status.getElectricityIn());
         return true;
     }
 

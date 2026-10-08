@@ -1,24 +1,19 @@
 package me.eeshe.celeoproc.model;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
- * Power outage logs collected for a guild within a date range.
+ * Power outage stats collected within a date range.
  *
- * @param guildLogs  logs whose user is a participant of the guild's electricity
- *                   status embeds
- * @param globalLogs every log within the range, regardless of guild
+ * @param server stats for the guild's electricity status embed participants
+ * @param global stats for every log within the range, regardless of guild
  */
 public record PowerOutageStats(
-        List<PowerOutageLog> guildLogs,
-        List<PowerOutageLog> globalLogs) {
+        OutageStats server,
+        OutageStats global) {
 
     public PowerOutageStats {
-        Objects.requireNonNull(guildLogs, "Guild logs must not be null");
-        Objects.requireNonNull(globalLogs, "Global logs must not be null");
-
-        guildLogs = List.copyOf(guildLogs);
-        globalLogs = List.copyOf(globalLogs);
+        Objects.requireNonNull(server, "Server stats must not be null");
+        Objects.requireNonNull(global, "Global stats must not be null");
     }
 }
