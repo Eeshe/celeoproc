@@ -56,9 +56,6 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
     public void onButtonInteraction(final ButtonInteractionEvent event) {
         final String componentId = event.getComponentId();
         final long userId = event.getUser().getIdLong();
-        final String nickname = event.getMember() != null
-                ? event.getMember().getEffectiveName()
-                : event.getUser().getName();
 
         if (ElectricityStatusEmbedService.ELECTRICITY_OUT_BUTTON_ID.equals(componentId)) {
             if (userElectricityStatusService.hasNoElectricity(userId)) {
@@ -70,7 +67,7 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
             event.replyModal(buildElectricityOutModal()).queue();
             return;
         } else if (ElectricityStatusEmbedService.ELECTRICITY_IN_BUTTON_ID.equals(componentId)) {
-            if (!userElectricityStatusService.setUserElectricityIn(userId, nickname, event.getMessageIdLong())) {
+            if (!userElectricityStatusService.setUserElectricityIn(userId, event.getMessageIdLong())) {
                 event.reply(messageService.get(Message.ELECTRICITY_STATUS_ALREADY_HAS_ELECTRICITY))
                         .setEphemeral(true)
                         .queue();
@@ -88,7 +85,6 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
             return;
         }
         final long userId = event.getUser().getIdLong();
-        final String nickname = event.getMember().getEffectiveName();
 
         final Duration estimate = parseEstimate(event);
         if (estimate == null) {
@@ -98,7 +94,7 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
         if (embedMessage == null) {
             return;
         }
-        if (!userElectricityStatusService.setUserElectricityOut(userId, nickname, estimate, embedMessage.getIdLong())) {
+        if (!userElectricityStatusService.setUserElectricityOut(userId, estimate, embedMessage.getIdLong())) {
             event.reply(messageService.get(Message.ELECTRICITY_STATUS_ALREADY_NO_ELECTRICITY))
                     .setEphemeral(true)
                     .queue();

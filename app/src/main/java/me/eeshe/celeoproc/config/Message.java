@@ -38,9 +38,22 @@ public enum Message {
 
     POST_ELECTRICITY_STATS_INVALID_DATE("post_electricity_stats_invalid_date"),
     POST_ELECTRICITY_STATS_INVALID_RANGE("post_electricity_stats_invalid_range"),
-    POST_ELECTRICITY_STATS_GUILD_EMBED_TITLE("post_electricity_stats_guild_embed_title"),
-    POST_ELECTRICITY_STATS_GLOBAL_EMBED_TITLE("post_electricity_stats_global_embed_title"),
-    POST_ELECTRICITY_STATS_EMBED_DESCRIPTION("post_electricity_stats_embed_description");
+    ELECTRICITY_STATS_SERVER_NO_DATA("electricity_stats_server_no_data"),
+    ELECTRICITY_STATS_GLOBAL_NO_DATA("electricity_stats_global_no_data"),
+    ELECTRICITY_STATS_SERVER_TITLE("electricity_stats_server_title"),
+    ELECTRICITY_STATS_SERVER_GENERAL_HEADER("electricity_stats_server_general_header"),
+    ELECTRICITY_STATS_SERVER_TOTAL_OUTAGES("electricity_stats_server_total_outages"),
+    ELECTRICITY_STATS_SERVER_TOTAL_TIME("electricity_stats_server_total_time"),
+    ELECTRICITY_STATS_SERVER_LONGEST("electricity_stats_server_longest"),
+    ELECTRICITY_STATS_SERVER_SHORTEST("electricity_stats_server_shortest"),
+    ELECTRICITY_STATS_SERVER_AWARD("electricity_stats_server_award"),
+    ELECTRICITY_STATS_SERVER_USER_HEADER("electricity_stats_server_user_header"),
+    ELECTRICITY_STATS_SERVER_USER_ENTRY("electricity_stats_server_user_entry"),
+    ELECTRICITY_STATS_GLOBAL_TITLE("electricity_stats_global_title"),
+    ELECTRICITY_STATS_GLOBAL_TOTAL_OUTAGES("electricity_stats_global_total_outages"),
+    ELECTRICITY_STATS_GLOBAL_TOTAL_TIME("electricity_stats_global_total_time"),
+    ELECTRICITY_STATS_GLOBAL_AVERAGE_TIME("electricity_stats_global_average_time"),
+    ELECTRICITY_STATS_GLOBAL_DISCLAIMER("electricity_stats_global_disclaimer");
 
     private final String key;
 

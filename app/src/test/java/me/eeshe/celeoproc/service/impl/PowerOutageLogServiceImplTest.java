@@ -1,14 +1,19 @@
 package me.eeshe.celeoproc.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,23 +22,28 @@ import org.junit.jupiter.api.Test;
 
 import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.model.ElectricityStatusEmbed;
+import me.eeshe.celeoproc.model.OutageStats;
 import me.eeshe.celeoproc.model.PowerOutageLog;
 import me.eeshe.celeoproc.model.PowerOutageStats;
+import me.eeshe.celeoproc.model.UserOutageStats;
 import me.eeshe.celeoproc.repository.PowerOutageLogRepository;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
+import me.eeshe.celeoproc.service.NicknameResolver;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 /**
- * Verifies that the service translates inclusive calendar days into the
- * timezone-aware {@link Instant} range handed to the repository and partitions
- * the logs by the guild's electricity status embed participants.
+ * Verifies the timezone-aware range conversion, guild/global partitioning and
+ * the aggregated stats returned by the service.
  */
 class PowerOutageLogServiceImplTest {
 
     private static final long GUILD_ID = 100L;
+    private static final LocalDate RANGE_START = LocalDate.of(2025, 5, 5);
+    private static final LocalDate RANGE_END = LocalDate.of(2025, 5, 10);
 
     private StubPowerOutageLogRepository repository;
     private StubElectricityStatusEmbedService electricityStatusEmbedService;
+    private StubNicknameResolver nicknameResolver;
     private PowerOutageLogServiceImpl service;
 
     @BeforeEach
@@ -43,15 +53,14 @@ class PowerOutageLogServiceImplTest {
 
         repository = new StubPowerOutageLogRepository();
         electricityStatusEmbedService = new StubElectricityStatusEmbedService();
-        service = new PowerOutageLogServiceImpl(repository, electricityStatusEmbedService, appSettings);
+        nicknameResolver = new StubNicknameResolver();
+        service = new PowerOutageLogServiceImpl(repository, electricityStatusEmbedService, nicknameResolver,
+                appSettings);
     }
 
     @Test
     void getWithinRangeSpansStartOfStartDayToEndOfEndDay() {
-        final LocalDate start = LocalDate.of(2025, 5, 5);
-        final LocalDate end = LocalDate.of(2025, 5, 10);
-
-        service.getWithinRange(GUILD_ID, start, end);
+        service.getWithinRange(GUILD_ID, RANGE_START, RANGE_END);
 
         // America/New_York is UTC-4 during this range (EDT).
         assertEquals(Instant.parse("2025-05-05T04:00:00Z"), repository.rangeStart);
@@ -60,10 +69,7 @@ class PowerOutageLogServiceImplTest {
 
     @Test
     void getWithinRangeHandlesDaylightSavingTransition() {
-        final LocalDate start = LocalDate.of(2025, 3, 9);
-        final LocalDate end = LocalDate.of(2025, 3, 9);
-
-        service.getWithinRange(GUILD_ID, start, end);
+        service.getWithinRange(GUILD_ID, LocalDate.of(2025, 3, 9), LocalDate.of(2025, 3, 9));
 
         // 2025-03-09 starts in EST (UTC-5) and ends in EDT (UTC-4).
         assertEquals(Instant.parse("2025-03-09T05:00:00Z"), repository.rangeStart);
@@ -71,70 +77,94 @@ class PowerOutageLogServiceImplTest {
     }
 
     @Test
-    void getWithinRangeFiltersParticipantsAcrossEveryGuildEmbed() {
+    void getWithinRangeAggregatesServerAndGlobalStats() {
         electricityStatusEmbedService.addEmbed(guildEmbed(GUILD_ID, 1L, 2L));
-        electricityStatusEmbedService.addEmbed(guildEmbed(GUILD_ID, 3L));
-        final PowerOutageLog participantOne = log(1L);
-        final PowerOutageLog participantThree = log(3L);
-        final PowerOutageLog outsider = log(99L);
-        repository.result = List.of(participantOne, outsider, participantThree);
+        final PowerOutageLog userOneLong = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+        final PowerOutageLog userOneShort = log(1L, "2025-05-07T10:00:00Z", "2025-05-07T10:30:00Z");
+        final PowerOutageLog userTwo = log(2L, "2025-05-08T10:00:00Z", "2025-05-08T11:00:00Z");
+        final PowerOutageLog outsider = log(99L, "2025-05-09T10:00:00Z", "2025-05-09T14:00:00Z");
+        repository.result = List.of(userOneLong, userOneShort, userTwo, outsider);
 
-        final PowerOutageStats stats = service.getWithinRange(GUILD_ID, LocalDate.of(2025, 5, 5),
-                LocalDate.of(2025, 5, 10));
+        final PowerOutageStats stats = service.getWithinRange(GUILD_ID, RANGE_START, RANGE_END);
 
-        assertEquals(List.of(participantOne, participantThree), stats.guildLogs());
-        assertEquals(List.of(participantOne, outsider, participantThree), stats.globalLogs());
+        final OutageStats server = stats.server();
+        assertEquals(3, server.logAmount());
+        assertEquals(Duration.ofHours(3).plusMinutes(30), server.totalTime());
+        assertEquals(Duration.ofMinutes(70), server.averageTime());
+        assertEquals(Duration.ofHours(2), server.longestOutage().duration());
+        assertEquals("1", server.longestOutage().nickname());
+        assertEquals(Duration.ofMinutes(30), server.shortestOutage().duration());
+        assertEquals(2, server.userStats().size());
+        assertEquals(Duration.ofHours(2).plusMinutes(30), server.awardWinner().totalTime());
+
+        final OutageStats global = stats.global();
+        assertEquals(4, global.logAmount());
+        assertEquals(Duration.ofHours(7).plusMinutes(30), global.totalTime());
+        assertEquals(Duration.ofMinutes(112).plusSeconds(30), global.averageTime());
+        assertNull(global.longestOutage());
+        assertTrue(global.userStats().isEmpty());
     }
 
     @Test
-    void getWithinRangeIgnoresOtherGuildsEmbeds() {
-        electricityStatusEmbedService.addEmbed(guildEmbed(GUILD_ID, 1L));
-        electricityStatusEmbedService.addEmbed(guildEmbed(200L, 42L));
-        final PowerOutageLog guildParticipant = log(1L);
-        final PowerOutageLog otherGuildParticipant = log(42L);
-        repository.result = List.of(guildParticipant, otherGuildParticipant);
+    void getWithinRangeOrdersUsersByTotalTime() {
+        electricityStatusEmbedService.addEmbed(guildEmbed(GUILD_ID, 1L, 2L));
+        repository.result = List.of(
+                log(2L, "2025-05-06T10:00:00Z", "2025-05-06T10:45:00Z"),
+                log(1L, "2025-05-07T10:00:00Z", "2025-05-07T13:00:00Z"));
 
-        final PowerOutageStats stats = service.getWithinRange(GUILD_ID, LocalDate.of(2025, 5, 5),
-                LocalDate.of(2025, 5, 10));
+        final List<UserOutageStats> userStats = service.getWithinRange(GUILD_ID, RANGE_START, RANGE_END)
+                .server()
+                .userStats();
 
-        assertEquals(List.of(guildParticipant), stats.guildLogs());
-        assertEquals(List.of(guildParticipant, otherGuildParticipant), stats.globalLogs());
+        assertEquals(1L, userStats.get(0).userId());
+        assertEquals(2L, userStats.get(1).userId());
     }
 
     @Test
-    void getWithinRangeWithoutEmbedsKeepsGlobalLogsOnly() {
-        final PowerOutageLog log = log(1L);
-        repository.result = List.of(log);
+    void getWithinRangeResolvesNicknamesAndFallsBackToUserId() {
+        electricityStatusEmbedService.addEmbed(guildEmbed(GUILD_ID, 1L, 3L));
+        nicknameResolver.names.put(1L, "Alice");
+        repository.result = List.of(
+                log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z"),
+                log(3L, "2025-05-07T10:00:00Z", "2025-05-07T11:00:00Z"));
 
-        final PowerOutageStats stats = service.getWithinRange(GUILD_ID, LocalDate.of(2025, 5, 5),
-                LocalDate.of(2025, 5, 10));
+        final OutageStats server = service.getWithinRange(GUILD_ID, RANGE_START, RANGE_END).server();
 
-        assertTrue(stats.guildLogs().isEmpty());
-        assertEquals(List.of(log), stats.globalLogs());
+        assertEquals("Alice", server.longestOutage().nickname());
+        assertEquals(List.of("Alice", "3"),
+                server.userStats().stream().map(UserOutageStats::nickname).toList());
+    }
+
+    @Test
+    void getWithinRangeWithoutLogsReturnsEmptyStats() {
+        final PowerOutageStats stats = service.getWithinRange(GUILD_ID, RANGE_START, RANGE_END);
+
+        final OutageStats server = stats.server();
+        assertEquals(0, server.logAmount());
+        assertEquals(Duration.ZERO, server.totalTime());
+        assertEquals(Duration.ZERO, server.averageTime());
+        assertNull(server.longestOutage());
+        assertNull(server.shortestOutage());
+        assertNull(server.awardWinner());
+        assertTrue(server.userStats().isEmpty());
+
+        assertEquals(0, stats.global().logAmount());
+        assertTrue(stats.global().userStats().isEmpty());
     }
 
     @Test
     void getWithinRangeRejectsNullDates() {
-        assertThrows(NullPointerException.class,
-                () -> service.getWithinRange(GUILD_ID, null, LocalDate.of(2025, 5, 10)));
-        assertThrows(NullPointerException.class,
-                () -> service.getWithinRange(GUILD_ID, LocalDate.of(2025, 5, 5), null));
+        assertThrows(NullPointerException.class, () -> service.getWithinRange(GUILD_ID, null, RANGE_END));
+        assertThrows(NullPointerException.class, () -> service.getWithinRange(GUILD_ID, RANGE_START, null));
     }
 
-    private static PowerOutageLog log(final long userId) {
-        return new PowerOutageLog(
-                UUID.randomUUID(),
-                userId,
-                Instant.parse("2025-05-06T10:00:00Z"),
-                Instant.parse("2025-05-06T12:00:00Z"));
+    private static PowerOutageLog log(final long userId, final String electricityOut, final String electricityIn) {
+        return new PowerOutageLog(UUID.randomUUID(), userId, Instant.parse(electricityOut),
+                Instant.parse(electricityIn));
     }
 
     private static ElectricityStatusEmbed guildEmbed(final long guildId, final Long... participantUserIds) {
-        return new ElectricityStatusEmbed(
-                1L,
-                guildId,
-                1L,
-                List.of(participantUserIds),
+        return new ElectricityStatusEmbed(1L, guildId, 1L, List.of(participantUserIds),
                 Instant.parse("2025-05-01T00:00:00Z"));
     }
 
@@ -204,6 +234,24 @@ class PowerOutageLogServiceImplTest {
 
         @Override
         public void deleteElectricityStatusEmbed(final long messageId) {
+        }
+    }
+
+    private static final class StubNicknameResolver implements NicknameResolver {
+        private final Map<Long, String> names = new HashMap<>();
+
+        @Override
+        public String resolveNickname(final long guildId, final long userId) {
+            return names.get(userId);
+        }
+
+        @Override
+        public Map<Long, String> resolveNicknames(final long guildId, final Collection<Long> userIds) {
+            final Map<Long, String> resolved = new HashMap<>();
+            for (final Long userId : userIds) {
+                resolved.put(userId, names.get(userId));
+            }
+            return resolved;
         }
     }
 }

@@ -34,11 +34,13 @@ import me.eeshe.celeoproc.scheduler.impl.ReminderScheduler;
 import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
+import me.eeshe.celeoproc.service.NicknameResolver;
 import me.eeshe.celeoproc.service.PowerOutageLogService;
 import me.eeshe.celeoproc.service.RegistryChannelService;
 import me.eeshe.celeoproc.service.UserElectricityStatusService;
 import me.eeshe.celeoproc.service.impl.ElectricityRegistryServiceImpl;
 import me.eeshe.celeoproc.service.impl.ElectricityStatusEmbedServiceImpl;
+import me.eeshe.celeoproc.service.impl.JDANicknameResolver;
 import me.eeshe.celeoproc.service.impl.MessageServiceImpl;
 import me.eeshe.celeoproc.service.impl.PowerOutageLogServiceImpl;
 import me.eeshe.celeoproc.service.impl.RegistryChannelServiceImpl;
@@ -101,15 +103,17 @@ public final class Bot {
     }
 
     private void initializeServices() {
+        final NicknameResolver nicknameResolver = new JDANicknameResolver(bot);
+
         this.messageService = new MessageServiceImpl(appMessages);
         this.electricityStatusEmbedService = new ElectricityStatusEmbedServiceImpl(electricityStatusEmbedRepository,
-                userElectricityStatusRepository, messageService, appSettings, bot);
+                userElectricityStatusRepository, messageService, nicknameResolver, appSettings, bot);
         this.registryChannelService = new RegistryChannelServiceImpl(registryChannelRepository,
                 electricityStatusEmbedService);
         this.electricityRegistryService = new ElectricityRegistryServiceImpl(registryChannelService, messageService,
-                bot);
+                nicknameResolver, bot);
         this.powerOutageLogService = new PowerOutageLogServiceImpl(powerOutageLogRepository,
-                electricityStatusEmbedService, appSettings);
+                electricityStatusEmbedService, nicknameResolver, appSettings);
         this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository,
                 electricityStatusEmbedRepository, electricityStatusEmbedService, electricityRegistryService,
                 powerOutageLogService, appSettings);
@@ -128,7 +132,7 @@ public final class Bot {
 
     private void initializeRegistries() {
         this.commandRegistry = new CommandRegistryImpl(messageService, electricityStatusEmbedService,
-                registryChannelService, powerOutageLogService, this);
+                registryChannelService, powerOutageLogService, appSettings, this);
     }
 
     private void registerListeners() {

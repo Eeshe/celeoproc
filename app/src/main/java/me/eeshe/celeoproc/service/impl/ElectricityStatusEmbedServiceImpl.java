@@ -19,6 +19,7 @@ import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
+import me.eeshe.celeoproc.service.NicknameResolver;
 import me.eeshe.celeoproc.util.DurationFormatter;
 import me.eeshe.celeoproc.util.MessageLinkFormatter;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -37,6 +38,7 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     private final ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
     private final UserElectricityStatusRepository userElectricityStatusRepository;
     private final MessageService messageService;
+    private final NicknameResolver nicknameResolver;
     private final AppSettings appSettings;
     private final JDA bot;
 
@@ -44,6 +46,7 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
             final ElectricityStatusEmbedRepository electricityStatusEmbedRepository,
             final UserElectricityStatusRepository userElectricityStatusRepository,
             final MessageService messageService,
+            final NicknameResolver nicknameResolver,
             final AppSettings appSettings,
             final JDA bot) {
         this.electricityStatusEmbedRepository = Objects.requireNonNull(electricityStatusEmbedRepository,
@@ -51,6 +54,7 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         this.userElectricityStatusRepository = Objects.requireNonNull(userElectricityStatusRepository,
                 "UserElectricityStatusRepository must not be null");
         this.messageService = Objects.requireNonNull(messageService, "MessageService must not be null");
+        this.nicknameResolver = Objects.requireNonNull(nicknameResolver, "NicknameResolver must not be null");
         this.appSettings = Objects.requireNonNull(appSettings, "AppSettings must not be null");
         this.bot = Objects.requireNonNull(bot, "JDA must not be null");
     }
@@ -62,12 +66,12 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         final long channelId = channel.getIdLong();
         final long guildId = channel.getGuild().getIdLong();
 
-        channel.sendMessageEmbeds(buildElectricityStatusEmbed(List.of(), 0L))
+        channel.sendMessageEmbeds(buildElectricityStatusEmbed(List.of(), 0L, guildId))
                 .addComponents(buildButtons())
                 .queue(message -> {
                     final long messageId = message.getIdLong();
                     saveEmbed(messageId, guildId, channelId);
-                    message.editMessageEmbeds(buildElectricityStatusEmbed(List.of(), messageId))
+                    message.editMessageEmbeds(buildElectricityStatusEmbed(List.of(), messageId, guildId))
                             .queue(
                                     ignored -> {
                                     },
@@ -93,7 +97,8 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         statusEmbed.refreshUpdatedAt();
         electricityStatusEmbedRepository.save(statusEmbed);
         channel.editMessageEmbedsById(statusEmbed.getMessageId(),
-                buildElectricityStatusEmbed(statusEmbed.getParticipantUserIds(), statusEmbed.getMessageId()))
+                buildElectricityStatusEmbed(statusEmbed.getParticipantUserIds(), statusEmbed.getMessageId(),
+                        statusEmbed.getGuildId()))
                 .queue(
                         ignored -> {
                         },
@@ -124,9 +129,13 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         return electricityStatusEmbedRepository.getByGuildId(guildId);
     }
 
-    private MessageEmbed buildElectricityStatusEmbed(final List<Long> participantUserIds, final long messageId) {
+    private MessageEmbed buildElectricityStatusEmbed(
+            final List<Long> participantUserIds,
+            final long messageId,
+            final long guildId) {
+        final Map<Long, String> nicknames = nicknameResolver.resolveNicknames(guildId, participantUserIds);
         final String description = userElectricityStatusRepository.get(participantUserIds).stream()
-                .map(this::formatParticipant)
+                .map(status -> formatParticipant(status, nicknames))
                 .collect(Collectors.joining("\n\n"));
 
         final EmbedBuilder builder = new EmbedBuilder().setTitle(TITLE);
@@ -139,40 +148,41 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         return builder.build();
     }
 
-    private String formatParticipant(final UserElectricityStatus status) {
+    private String formatParticipant(final UserElectricityStatus status, final Map<Long, String> nicknames) {
+        final String nickname = nicknames.getOrDefault(status.getUserId(), String.valueOf(status.getUserId()));
         if (status.getElectricityOut() == null) {
-            return formatWithoutOutageHistory(status);
+            return formatWithoutOutageHistory(nickname);
         }
         if (!status.hasElectricity()) {
-            return formatWithoutElectricity(status);
+            return formatWithoutElectricity(status, nickname);
         }
         if (status.hasElectricityOutToday(appSettings.getTimezone())) {
-            return formatWithOutageToday(status);
+            return formatWithOutageToday(status, nickname);
         }
-        return formatWithElectricity(status);
+        return formatWithElectricity(status, nickname);
     }
 
-    private String formatWithElectricity(final UserElectricityStatus status) {
+    private String formatWithElectricity(final UserElectricityStatus status, final String nickname) {
         return messageService.get(Message.ELECTRICITY_STATUS_EMBED_HAS_ELECTRICITY, Map.of(
-                "nickname", status.getNickname(),
+                "nickname", nickname,
                 "time_since_electricity_outage_relative", formatRelativeTime(status.getElectricityIn())));
     }
 
-    private String formatWithOutageToday(final UserElectricityStatus status) {
+    private String formatWithOutageToday(final UserElectricityStatus status, final String nickname) {
         return messageService.get(Message.ELECTRICITY_STATUS_EMBED_OUTAGE_TODAY, Map.of(
-                "nickname", status.getNickname(),
+                "nickname", nickname,
                 "out", formatTimestamp(status.getElectricityOut()),
                 "in", formatTimestamp(status.getElectricityIn())));
     }
 
-    private String formatWithoutOutageHistory(final UserElectricityStatus status) {
+    private String formatWithoutOutageHistory(final String nickname) {
         return messageService.get(Message.ELECTRICITY_STATUS_EMBED_NO_OUTAGE_HISTORY, Map.of(
-                "nickname", status.getNickname()));
+                "nickname", nickname));
     }
 
-    private String formatWithoutElectricity(final UserElectricityStatus status) {
+    private String formatWithoutElectricity(final UserElectricityStatus status, final String nickname) {
         return messageService.get(Message.ELECTRICITY_STATUS_EMBED_NO_ELECTRICITY, Map.of(
-                "nickname", status.getNickname(),
+                "nickname", nickname,
                 "out", formatTimestamp(status.getElectricityOut()),
                 "estimate", formatTimestamp(status.getElectricityInEstimate()),
                 "estimate_relative", formatRelativeTimestamp(status.getElectricityInEstimate())));

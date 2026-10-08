@@ -13,6 +13,7 @@ import me.eeshe.celeoproc.command.PostElectricityStatusEmbedCommand;
 import me.eeshe.celeoproc.command.ReloadCommand;
 import me.eeshe.celeoproc.command.SetElectricityRegistryCommand;
 import me.eeshe.celeoproc.command.UnsetElectricityRegistryCommand;
+import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.registry.CommandRegistry;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
@@ -28,18 +29,20 @@ public final class CommandRegistryImpl implements CommandRegistry {
             final ElectricityStatusEmbedService electricityStatusEmbedService,
             final RegistryChannelService registryChannelService,
             final PowerOutageLogService powerOutageLogService,
+            final AppSettings appSettings,
             final Bot bot) {
         Objects.requireNonNull(messageService, "MessageService must not be null");
         Objects.requireNonNull(electricityStatusEmbedService,
                 "ElectricityStatusEmbedService must not be null");
         Objects.requireNonNull(registryChannelService, "RegistryChannelService must not be null");
         Objects.requireNonNull(powerOutageLogService, "PowerOutageLogService must not be null");
+        Objects.requireNonNull(appSettings, "AppSettings must not be null");
         Objects.requireNonNull(bot, "Bot must not be null");
 
         this.commands = new HashMap<>();
 
         populateCommands(messageService, electricityStatusEmbedService, registryChannelService, powerOutageLogService,
-                bot);
+                appSettings, bot);
     }
 
     private void populateCommands(
@@ -47,13 +50,14 @@ public final class CommandRegistryImpl implements CommandRegistry {
             final ElectricityStatusEmbedService electricityStatusEmbedService,
             final RegistryChannelService registryChannelService,
             final PowerOutageLogService powerOutageLogService,
+            final AppSettings appSettings,
             final Bot bot) {
         commands.put(CeleoprocCommand.NAME, new CeleoprocCommand(messageService));
         commands.put(ReloadCommand.NAME, new ReloadCommand(messageService, bot));
         commands.put(PostElectricityStatusEmbedCommand.NAME,
                 new PostElectricityStatusEmbedCommand(messageService, electricityStatusEmbedService));
         commands.put(PostElectricityStatsCommand.NAME,
-                new PostElectricityStatsCommand(messageService, powerOutageLogService));
+                new PostElectricityStatsCommand(messageService, powerOutageLogService, appSettings));
         commands.put(SetElectricityRegistryCommand.NAME,
                 new SetElectricityRegistryCommand(messageService, electricityStatusEmbedService,
                         registryChannelService));

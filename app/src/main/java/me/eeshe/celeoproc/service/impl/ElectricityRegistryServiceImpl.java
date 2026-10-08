@@ -3,6 +3,7 @@ package me.eeshe.celeoproc.service.impl;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import me.eeshe.celeoproc.config.Message;
 import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.MessageService;
+import me.eeshe.celeoproc.service.NicknameResolver;
 import me.eeshe.celeoproc.service.RegistryChannelService;
 import me.eeshe.celeoproc.util.DurationFormatter;
 import net.dv8tion.jda.api.JDA;
@@ -25,43 +27,39 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
 
     private final RegistryChannelService registryChannelService;
     private final MessageService messageService;
+    private final NicknameResolver nicknameResolver;
     private final JDA bot;
 
     public ElectricityRegistryServiceImpl(
             final RegistryChannelService registryChannelService,
             final MessageService messageService,
+            final NicknameResolver nicknameResolver,
             final JDA bot) {
         this.registryChannelService = Objects.requireNonNull(registryChannelService,
                 "RegistryChannelService must not be null");
         this.messageService = Objects.requireNonNull(messageService, "MessageService must not be null");
+        this.nicknameResolver = Objects.requireNonNull(nicknameResolver, "NicknameResolver must not be null");
         this.bot = Objects.requireNonNull(bot, "JDA must not be null");
     }
 
     @Override
-    public void sendElectricityOut(final long userId, final String nickname,
-            final Instant previousElectricityIn) {
-        Objects.requireNonNull(nickname, "Nickname must not be null");
-
+    public void sendElectricityOut(final long userId, final Instant previousElectricityIn) {
         final String lasted = previousElectricityIn == null
                 ? UNKNOWN_DURATION
                 : DurationFormatter.format(Duration.between(previousElectricityIn, Instant.now()));
 
         send(userId, Message.ELECTRICITY_REGISTRY_OUT, Map.of(
-                "nickname", nickname,
                 "time_since_last_power_outage_relative", lasted));
     }
 
     @Override
-    public void sendElectricityIn(final long userId, final String nickname, final Instant electricityOut,
-            final Instant electricityIn) {
-        Objects.requireNonNull(nickname, "Nickname must not be null");
+    public void sendElectricityIn(final long userId, final Instant electricityOut, final Instant electricityIn) {
         Objects.requireNonNull(electricityIn, "Electricity in must not be null");
         if (electricityOut == null) {
             return;
         }
 
         send(userId, Message.ELECTRICITY_REGISTRY_IN, Map.of(
-                "nickname", nickname,
                 "electricity_out_time", formatTimestamp(electricityOut),
                 "electricity_in_time", formatTimestamp(electricityIn),
                 "power_outage_time_relative",
@@ -69,12 +67,12 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
     }
 
     private void send(final long userId, final Message message, final Map<String, String> placeholders) {
-        final List<TextChannel> channels = resolveChannels(userId);
-        if (channels.isEmpty()) {
-            return;
-        }
-        final String content = messageService.get(message, placeholders);
-        for (final TextChannel channel : channels) {
+        for (final TextChannel channel : resolveChannels(userId)) {
+            final Map<String, String> channelPlaceholders = new HashMap<>(placeholders);
+            channelPlaceholders.put("nickname",
+                    nicknameResolver.resolveNickname(channel.getGuild().getIdLong(), userId));
+
+            final String content = messageService.get(message, channelPlaceholders);
             channel.sendMessage(content)
                     .queue(
                             ignored -> {
