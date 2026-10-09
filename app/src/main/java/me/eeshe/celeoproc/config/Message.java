@@ -1,7 +1,18 @@
 package me.eeshe.celeoproc.config;
 
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.modals.Modal;
+
 /**
  * Registry of configurable message keys available in {@code messages.json}.
+ *
+ * <p>
+ * Messages bound to a Discord component declare the component's character limit
+ * so an over-long value is rejected while loading the configuration instead of
+ * crashing when the component is built. Messages without a limit use
+ * {@link #NO_LIMIT}.
  */
 public enum Message {
     BOT_READY("bot_ready"),
@@ -10,13 +21,14 @@ public enum Message {
     MISSING_ARGUMENT("missing_argument"),
     GUILD_ONLY("guild_only"),
 
-    ELECTRICITY_STATUS_EMBED_BUTTON_OUT("electricity_status_embed_button_out"),
-    ELECTRICITY_STATUS_EMBED_BUTTON_IN("electricity_status_embed_button_in"),
+    ELECTRICITY_STATUS_EMBED_BUTTON_OUT("electricity_status_embed_button_out", Button.LABEL_MAX_LENGTH),
+    ELECTRICITY_STATUS_EMBED_BUTTON_IN("electricity_status_embed_button_in", Button.LABEL_MAX_LENGTH),
     ELECTRICITY_STATUS_ALREADY_HAS_ELECTRICITY("electricity_status_already_has_electricity"),
     ELECTRICITY_STATUS_ALREADY_NO_ELECTRICITY("electricity_status_already_no_electricity"),
-    ELECTRICITY_STATUS_EMBED_OUT_MODAL_TITLE("electricity_status_embed_out_modal_title"),
-    ELECTRICITY_STATUS_EMBED_OUT_MODAL_LABEL("electricity_status_embed_out_modal_label"),
-    ELECTRICITY_STATUS_EMBED_OUT_MODAL_PLACEHOLDER("electricity_status_embed_out_modal_placeholder"),
+    ELECTRICITY_STATUS_EMBED_OUT_MODAL_TITLE("electricity_status_embed_out_modal_title", Modal.MAX_TITLE_LENGTH),
+    ELECTRICITY_STATUS_EMBED_OUT_MODAL_LABEL("electricity_status_embed_out_modal_label", Label.LABEL_MAX_LENGTH),
+    ELECTRICITY_STATUS_EMBED_OUT_MODAL_PLACEHOLDER("electricity_status_embed_out_modal_placeholder",
+            TextInput.MAX_PLACEHOLDER_LENGTH),
     ELECTRICITY_STATUS_INVALID_DURATION("electricity_status_invalid_duration"),
 
     ELECTRICITY_REGISTRY_OUT("electricity_registry_out"),
@@ -53,15 +65,46 @@ public enum Message {
     ELECTRICITY_STATS_GLOBAL_TOTAL_OUTAGES("electricity_stats_global_total_outages"),
     ELECTRICITY_STATS_GLOBAL_TOTAL_TIME("electricity_stats_global_total_time"),
     ELECTRICITY_STATS_GLOBAL_AVERAGE_TIME("electricity_stats_global_average_time"),
-    ELECTRICITY_STATS_GLOBAL_DISCLAIMER("electricity_stats_global_disclaimer");
+    ELECTRICITY_STATS_GLOBAL_DISCLAIMER("electricity_stats_global_disclaimer"),
+
+    POWER_OUTAGE_LOG_NOT_FOUND("power_outage_log_not_found"),
+    POWER_OUTAGE_EDIT_BUTTON("power_outage_edit_button", Button.LABEL_MAX_LENGTH),
+    POWER_OUTAGE_DELETE_BUTTON("power_outage_delete_button", Button.LABEL_MAX_LENGTH),
+    DELETE_POWER_OUTAGE_CONFIRM("delete_power_outage_confirm"),
+    DELETE_POWER_OUTAGE_CONFIRM_BUTTON("delete_power_outage_confirm_button", Button.LABEL_MAX_LENGTH),
+    DELETE_POWER_OUTAGE_SUCCESS("delete_power_outage_success"),
+    EDIT_POWER_OUTAGE_MODAL_TITLE("edit_power_outage_modal_title", Modal.MAX_TITLE_LENGTH),
+    EDIT_POWER_OUTAGE_MODAL_DESCRIPTION("edit_power_outage_modal_description"),
+    EDIT_POWER_OUTAGE_OUT_LABEL("edit_power_outage_out_label", Label.LABEL_MAX_LENGTH),
+    EDIT_POWER_OUTAGE_IN_LABEL("edit_power_outage_in_label", Label.LABEL_MAX_LENGTH),
+    EDIT_POWER_OUTAGE_INVALID_DATE("edit_power_outage_invalid_date"),
+    EDIT_POWER_OUTAGE_INVALID_RANGE("edit_power_outage_invalid_range"),
+    EDIT_POWER_OUTAGE_MISSING_FIELDS("edit_power_outage_missing_fields"),
+    EDIT_POWER_OUTAGE_SUCCESS("edit_power_outage_success");
+
+    private static final int NO_LIMIT = 0;
 
     private final String key;
+    private final int maxLength;
 
     Message(final String key) {
+        this(key, NO_LIMIT);
+    }
+
+    Message(final String key, final int maxLength) {
         this.key = key;
+        this.maxLength = maxLength;
     }
 
     public String key() {
         return key;
+    }
+
+    /**
+     * @return maximum allowed length of the message, or {@link #NO_LIMIT} when the
+     *         message is not bound to a length-limited Discord component
+     */
+    public int maxLength() {
+        return maxLength;
     }
 }

@@ -22,6 +22,7 @@ import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.NicknameResolver;
 import me.eeshe.celeoproc.util.DurationFormatter;
 import me.eeshe.celeoproc.util.MessageLinkFormatter;
+import me.eeshe.celeoproc.util.TimestampFormatter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
@@ -171,8 +172,8 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     private String formatWithOutageToday(final UserElectricityStatus status, final String nickname) {
         return messageService.get(Message.ELECTRICITY_STATUS_EMBED_OUTAGE_TODAY, Map.of(
                 "nickname", nickname,
-                "out", formatTimestamp(status.getElectricityOut()),
-                "in", formatTimestamp(status.getElectricityIn())));
+                "out", TimestampFormatter.format(status.getElectricityOut()),
+                "in", TimestampFormatter.format(status.getElectricityIn())));
     }
 
     private String formatWithoutOutageHistory(final String nickname) {
@@ -183,9 +184,9 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     private String formatWithoutElectricity(final UserElectricityStatus status, final String nickname) {
         return messageService.get(Message.ELECTRICITY_STATUS_EMBED_NO_ELECTRICITY, Map.of(
                 "nickname", nickname,
-                "out", formatTimestamp(status.getElectricityOut()),
-                "estimate", formatTimestamp(status.getElectricityInEstimate()),
-                "estimate_relative", formatRelativeTimestamp(status.getElectricityInEstimate())));
+                "out", TimestampFormatter.format(status.getElectricityOut()),
+                "estimate", TimestampFormatter.format(status.getElectricityInEstimate()),
+                "estimate_relative", TimestampFormatter.formatRelative(status.getElectricityInEstimate())));
     }
 
     private ActionRow buildButtons() {
@@ -196,14 +197,6 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
                 Button.success(
                         ELECTRICITY_IN_BUTTON_ID,
                         messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_IN)));
-    }
-
-    private String formatTimestamp(final Instant instant) {
-        return "<t:%d:t>".formatted(instant.getEpochSecond());
-    }
-
-    private String formatRelativeTimestamp(final Instant instant) {
-        return "<t:%d:R>".formatted(instant.getEpochSecond());
     }
 
     private String formatRelativeTime(final Instant from) {

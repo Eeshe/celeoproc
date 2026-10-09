@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.model.ElectricityStatusEmbed;
+import me.eeshe.celeoproc.model.PowerOutageLog;
 import me.eeshe.celeoproc.model.UserElectricityStatus;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
@@ -56,9 +57,9 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
         status.setElectricityIn(Instant.now());
         userElectricityStatusRepository.save(status);
         if (status.getElectricityOut() != null) {
-            powerOutageLogService.logPowerOutage(userId, status.getElectricityOut(), status.getElectricityIn());
-            electricityRegistryService.sendElectricityIn(userId, status.getElectricityOut(),
+            final PowerOutageLog log = powerOutageLogService.logPowerOutage(userId, status.getElectricityOut(),
                     status.getElectricityIn());
+            electricityRegistryService.sendElectricityIn(log);
         }
         updateParticipantEmbeds(embedMessageId, userId);
         return true;

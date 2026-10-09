@@ -17,6 +17,7 @@ import me.eeshe.celeoproc.database.Database;
 import me.eeshe.celeoproc.database.impl.PostgreSQLDatabase;
 import me.eeshe.celeoproc.listener.CommandListener;
 import me.eeshe.celeoproc.listener.ElectricityStatusEmbedListener;
+import me.eeshe.celeoproc.listener.PowerOutageManagementListener;
 import me.eeshe.celeoproc.registry.CommandRegistry;
 import me.eeshe.celeoproc.registry.impl.CommandRegistryImpl;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
@@ -139,6 +140,8 @@ public final class Bot {
         bot.addEventListener(new CommandListener(commandRegistry));
         bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService,
                 userElectricityStatusService, registryChannelService, messageService, appSettings));
+        bot.addEventListener(new PowerOutageManagementListener(powerOutageLogService, messageService, appSettings,
+                electricityRegistryService));
     }
 
     private void registerCommands() {

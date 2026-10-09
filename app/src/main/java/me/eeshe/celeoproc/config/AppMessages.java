@@ -22,6 +22,12 @@ public final class AppMessages extends JsonConfigLoader {
             if (node.isMissingNode() || node.isNull() || node.asText().isBlank()) {
                 throw new IllegalStateException("Missing required message '%s'".formatted(message.key()));
             }
+            final int maxLength = message.maxLength();
+            if (maxLength > 0 && node.asText().length() > maxLength) {
+                throw new IllegalStateException(
+                        "Message '%s' is %d characters long, exceeding the %d character limit: '%s'"
+                                .formatted(message.key(), node.asText().length(), maxLength, node.asText()));
+            }
         }
     }
 
