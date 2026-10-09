@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
@@ -118,6 +119,44 @@ class PowerOutageLogRepositoryImplTest {
 
         final List<PowerOutageLog> result = repository.getWithinRange(RANGE_START, RANGE_END);
         assertEquals(List.of(first, second, third), result);
+    }
+
+    @Test
+    void getByIdReturnsStoredLog() {
+        final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+
+        repository.save(log);
+
+        assertEquals(Optional.of(log), repository.getById(log.id()));
+    }
+
+    @Test
+    void getByIdReturnsEmptyForUnknownId() {
+        assertTrue(repository.getById(UUID.randomUUID()).isEmpty());
+    }
+
+    @Test
+    void deleteRemovesStoredLog() {
+        final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+        repository.save(log);
+
+        repository.delete(log.id());
+
+        assertTrue(repository.getById(log.id()).isEmpty());
+        assertTrue(repository.getWithinRange(RANGE_START, RANGE_END).isEmpty());
+    }
+
+    @Test
+    void saveOverwritesExistingLog() {
+        final PowerOutageLog original = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+        repository.save(original);
+
+        final PowerOutageLog updated = new PowerOutageLog(original.id(), 2L,
+                Instant.parse("2025-05-06T13:00:00Z"), Instant.parse("2025-05-06T15:00:00Z"));
+        repository.save(updated);
+
+        assertEquals(Optional.of(updated), repository.getById(original.id()));
+        assertEquals(1, repository.getWithinRange(RANGE_START, RANGE_END).size());
     }
 
     private static PowerOutageLog log(final long userId, final String electricityOut, final String electricityIn) {

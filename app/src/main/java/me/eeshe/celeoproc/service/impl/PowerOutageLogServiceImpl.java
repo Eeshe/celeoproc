@@ -3,6 +3,7 @@ package me.eeshe.celeoproc.service.impl;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,6 +27,8 @@ import me.eeshe.celeoproc.repository.PowerOutageLogRepository;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.NicknameResolver;
 import me.eeshe.celeoproc.service.PowerOutageLogService;
+import me.eeshe.celeoproc.util.DurationFormatter;
+import me.eeshe.celeoproc.util.TimestampFormatter;
 
 public final class PowerOutageLogServiceImpl implements PowerOutageLogService {
     private static final Comparator<UserOutageStats> USER_STATS_ORDER = Comparator
@@ -67,6 +71,56 @@ public final class PowerOutageLogServiceImpl implements PowerOutageLogService {
         powerOutageLogRepository.save(powerOutageLog);
 
         return powerOutageLog;
+    }
+
+    @Override
+    public Optional<PowerOutageLog> getById(final UUID id) {
+        Objects.requireNonNull(id, "Id must not be null");
+
+        return powerOutageLogRepository.getById(id);
+    }
+
+    @Override
+    public boolean delete(final PowerOutageLog log) {
+        Objects.requireNonNull(log, "PowerOutageLog must not be null");
+
+        if (powerOutageLogRepository.getById(log.id()).isEmpty()) {
+            return false;
+        }
+        powerOutageLogRepository.delete(log.id());
+        return true;
+    }
+
+    @Override
+    public PowerOutageLog updatePowerOutage(
+            final PowerOutageLog log,
+            final LocalDateTime electricityOut,
+            final LocalDateTime electricityIn) {
+        Objects.requireNonNull(log, "PowerOutageLog must not be null");
+        Objects.requireNonNull(electricityOut, "Electricity out must not be null");
+        Objects.requireNonNull(electricityIn, "Electricity in must not be null");
+
+        final ZoneId zone = appSettings.getTimezone();
+        final PowerOutageLog updatedLog = new PowerOutageLog(
+                log.id(),
+                log.userId(),
+                electricityOut.atZone(zone).toInstant(),
+                electricityIn.atZone(zone).toInstant());
+        powerOutageLogRepository.save(updatedLog);
+        return updatedLog;
+    }
+
+    @Override
+    public Map<String, String> buildLogPlaceholders(final PowerOutageLog log, final long guildId) {
+        Objects.requireNonNull(log, "PowerOutageLog must not be null");
+
+        final String nickname = nicknameResolver.resolveNickname(guildId, log.userId());
+        return Map.of(
+                "nickname", nickname == null || nickname.isBlank() ? String.valueOf(log.userId()) : nickname,
+                "electricity_out", TimestampFormatter.format(log.electricityOut()),
+                "electricity_in", TimestampFormatter.format(log.electricityIn()),
+                "power_outage_time", DurationFormatter.format(computeLogDuration(log)),
+                "log_id", log.id().toString());
     }
 
     @Override

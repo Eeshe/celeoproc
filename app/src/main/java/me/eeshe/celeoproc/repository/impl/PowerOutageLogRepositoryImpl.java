@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -52,9 +53,24 @@ public final class PowerOutageLogRepositoryImpl implements PowerOutageLogReposit
     private static final String SAVE_SQL = """
             INSERT INTO %s (%s)
             VALUES (?, ?, ?, ?)
-            ON CONFLICT (%s) DO NOTHING""".formatted(
+            ON CONFLICT (%s) DO UPDATE SET
+                %s = EXCLUDED.%s,
+                %s = EXCLUDED.%s,
+                %s = EXCLUDED.%s""".formatted(
             TABLE,
             SELECT_COLUMNS,
+            COLUMN_ID,
+            COLUMN_USER_ID, COLUMN_USER_ID,
+            COLUMN_ELECTRICITY_OUT, COLUMN_ELECTRICITY_OUT,
+            COLUMN_ELECTRICITY_IN, COLUMN_ELECTRICITY_IN);
+
+    private static final String GET_BY_ID_SQL = "SELECT %s FROM %s WHERE %s = ?".formatted(
+            SELECT_COLUMNS,
+            TABLE,
+            COLUMN_ID);
+
+    private static final String DELETE_SQL = "DELETE FROM %s WHERE %s = ?".formatted(
+            TABLE,
             COLUMN_ID);
 
     private static final String GET_LOGS_SQL = """
@@ -104,6 +120,39 @@ public final class PowerOutageLogRepositoryImpl implements PowerOutageLogReposit
             statement.executeUpdate();
         } catch (final SQLException exception) {
             LOGGER.error("Failed to save power outage log '{}'", powerOutageLog.id(), exception);
+        }
+    }
+
+    @Override
+    public Optional<PowerOutageLog> getById(final UUID id) {
+        Objects.requireNonNull(id, "Id must not be null");
+
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(GET_BY_ID_SQL)) {
+            statement.setObject(1, id);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapRow(resultSet));
+                }
+            }
+        } catch (final SQLException exception) {
+            LOGGER.error("Failed to load power outage log '{}'", id, exception);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public void delete(final UUID id) {
+        Objects.requireNonNull(id, "Id must not be null");
+
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(DELETE_SQL)) {
+            statement.setObject(1, id);
+
+            statement.executeUpdate();
+        } catch (final SQLException exception) {
+            LOGGER.error("Failed to delete power outage log '{}'", id, exception);
         }
     }
 

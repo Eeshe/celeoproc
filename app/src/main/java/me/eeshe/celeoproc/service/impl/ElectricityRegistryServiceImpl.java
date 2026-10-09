@@ -7,18 +7,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import me.eeshe.celeoproc.config.Message;
+import me.eeshe.celeoproc.listener.PowerOutageManagementListener;
+import me.eeshe.celeoproc.model.PowerOutageLog;
 import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.NicknameResolver;
 import me.eeshe.celeoproc.service.RegistryChannelService;
 import me.eeshe.celeoproc.util.DurationFormatter;
+import me.eeshe.celeoproc.util.TimestampFormatter;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 
 public final class ElectricityRegistryServiceImpl implements ElectricityRegistryService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ElectricityRegistryServiceImpl.class);
@@ -49,24 +56,77 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
                 : DurationFormatter.format(Duration.between(previousElectricityIn, Instant.now()));
 
         send(userId, Message.ELECTRICITY_REGISTRY_OUT, Map.of(
-                "time_since_last_power_outage_relative", lasted));
+                "time_since_last_power_outage_relative", lasted), List.of());
     }
 
     @Override
-    public void sendElectricityIn(final long userId, final Instant electricityOut, final Instant electricityIn) {
-        Objects.requireNonNull(electricityIn, "Electricity in must not be null");
-        if (electricityOut == null) {
-            return;
-        }
+    public void sendElectricityIn(final PowerOutageLog log) {
+        Objects.requireNonNull(log, "PowerOutageLog must not be null");
 
-        send(userId, Message.ELECTRICITY_REGISTRY_IN, Map.of(
-                "electricity_out_time", formatTimestamp(electricityOut),
-                "electricity_in_time", formatTimestamp(electricityIn),
-                "power_outage_time_relative",
-                DurationFormatter.format(Duration.between(electricityOut, electricityIn))));
+        send(log.userId(), Message.ELECTRICITY_REGISTRY_IN, buildElectricityInPlaceholders(log),
+                List.of(buildManagementButtons(log.id())));
     }
 
-    private void send(final long userId, final Message message, final Map<String, String> placeholders) {
+    @Override
+    public void editElectricityIn(final net.dv8tion.jda.api.entities.Message message, final PowerOutageLog log) {
+        Objects.requireNonNull(message, "Message must not be null");
+        Objects.requireNonNull(log, "PowerOutageLog must not be null");
+
+        if (!message.isFromGuild()) {
+            LOGGER.error("Failed to edit electricity registry message '{}': message is not from a guild",
+                    message.getIdLong());
+            return;
+        }
+        final Map<String, String> placeholders = new HashMap<>(buildElectricityInPlaceholders(log));
+        placeholders.put("nickname", nicknameResolver.resolveNickname(message.getGuildIdLong(), log.userId()));
+
+        message.editMessage(messageService.get(Message.ELECTRICITY_REGISTRY_IN, placeholders))
+                .queue(
+                        ignored -> {
+                        },
+                        throwable -> LOGGER.error(
+                                "Failed to edit electricity registry message '{}'", message.getIdLong(), throwable));
+    }
+
+    @Override
+    public void deleteElectricityIn(final MessageChannel channel, final long messageId) {
+        Objects.requireNonNull(channel, "Channel must not be null");
+
+        channel.deleteMessageById(messageId)
+                .queue(
+                        ignored -> {
+                        },
+                        throwable -> LOGGER.error(
+                                "Failed to delete electricity registry message '{}'", messageId, throwable));
+    }
+
+    private Map<String, String> buildElectricityInPlaceholders(final PowerOutageLog log) {
+        return Map.of(
+                "electricity_out_time", TimestampFormatter.format(log.electricityOut()),
+                "electricity_in_time", TimestampFormatter.format(log.electricityIn()),
+                "power_outage_time_relative",
+                DurationFormatter.format(Duration.between(log.electricityOut(), log.electricityIn())));
+    }
+
+    /**
+     * @param id id of the log the buttons manage
+     * @return action row with the edit and delete buttons for the given log
+     */
+    private ActionRow buildManagementButtons(final UUID id) {
+        return ActionRow.of(
+                Button.primary(
+                        PowerOutageManagementListener.computeEditButtonId(id),
+                        messageService.get(Message.POWER_OUTAGE_EDIT_BUTTON)),
+                Button.danger(
+                        PowerOutageManagementListener.computeDeleteButtonId(id),
+                        messageService.get(Message.POWER_OUTAGE_DELETE_BUTTON)));
+    }
+
+    private void send(
+            final long userId,
+            final Message message,
+            final Map<String, String> placeholders,
+            final List<ActionRow> components) {
         for (final TextChannel channel : resolveChannels(userId)) {
             final Map<String, String> channelPlaceholders = new HashMap<>(placeholders);
             channelPlaceholders.put("nickname",
@@ -74,6 +134,7 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
 
             final String content = messageService.get(message, channelPlaceholders);
             channel.sendMessage(content)
+                    .addComponents(components)
                     .queue(
                             ignored -> {
                             },
@@ -99,9 +160,5 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
             channels.add(channel);
         }
         return channels;
-    }
-
-    private String formatTimestamp(final Instant instant) {
-        return "<t:%d:t>".formatted(instant.getEpochSecond());
     }
 }

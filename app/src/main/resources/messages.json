@@ -43,5 +43,19 @@
   "electricity_stats_global_average_time": "Average Power Outage Time: **{average_power_outage_time}**",
   "electricity_stats_global_disclaimer": "*These stats are not verified. They are just the collected stats gathered from all servers*",
   "electricity_stats_server_no_data": "No server power outage data has been collected for this period.",
-  "electricity_stats_global_no_data": "No global power outage data has been collected for this period."
+  "electricity_stats_global_no_data": "No global power outage data has been collected for this period.",
+  "power_outage_log_not_found": "No power outage log found with ID '{log_id}'.",
+  "power_outage_edit_button": "✏️ Edit",
+  "power_outage_delete_button": "🗑️ Delete",
+  "delete_power_outage_confirm": "Are you sure you want to delete this power outage?\n\n{nickname}\n{electricity_out} -> {electricity_in} ({power_outage_time})",
+  "delete_power_outage_confirm_button": "🗑️ Confirm",
+  "delete_power_outage_success": "Power outage log '{log_id}' has been deleted.",
+  "edit_power_outage_modal_title": "Editing Power Outage",
+  "edit_power_outage_modal_description": "**Accepted date formats**\n- `YYYY-MM-dd hh:mm AM/PM` — e.g. `2026-10-08 10:30PM`\n- `hh:mm AM/PM` — time only, keeps the current date, e.g. `5:01PM`\nSingle-digit month/day/hour are also accepted.",
+  "edit_power_outage_out_label": "Electricity Out Time",
+  "edit_power_outage_in_label": "Electricity In Time",
+  "edit_power_outage_invalid_date": "'{input}' is not a valid date. Use YYYY-MM-dd hh:mm AM/PM or hh:mm AM/PM.",
+  "edit_power_outage_invalid_range": "Electricity in time must be after the electricity out time.",
+  "edit_power_outage_missing_fields": "Fill in at least one field to edit this power outage.",
+  "edit_power_outage_success": "Power outage log '{log_id}' has been updated."
 }

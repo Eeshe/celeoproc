@@ -1,6 +1,7 @@
 package me.eeshe.celeoproc.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,6 +10,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -158,6 +160,61 @@ class PowerOutageLogServiceImplTest {
         assertThrows(NullPointerException.class, () -> service.getWithinRange(GUILD_ID, RANGE_START, null));
     }
 
+    @Test
+    void getByIdDelegatesToRepository() {
+        final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+        repository.stored.put(log.id(), log);
+
+        assertEquals(Optional.of(log), service.getById(log.id()));
+        assertTrue(service.getById(UUID.randomUUID()).isEmpty());
+    }
+
+    @Test
+    void deleteRemovesStoredLog() {
+        final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+        repository.stored.put(log.id(), log);
+
+        assertTrue(service.delete(log));
+        assertTrue(repository.stored.isEmpty());
+    }
+
+    @Test
+    void deleteReturnsFalseWhenLogIsMissing() {
+        assertFalse(service.delete(log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z")));
+    }
+
+    @Test
+    void updatePowerOutageConvertsInputsToConfiguredTimezone() {
+        final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+
+        final PowerOutageLog updated = service.updatePowerOutage(log,
+                LocalDateTime.of(2025, 5, 6, 10, 0),
+                LocalDateTime.of(2025, 5, 6, 12, 0));
+
+        // America/New_York is UTC-4 during this date (EDT).
+        assertEquals(Instant.parse("2025-05-06T14:00:00Z"), updated.electricityOut());
+        assertEquals(Instant.parse("2025-05-06T16:00:00Z"), updated.electricityIn());
+        assertEquals(log.id(), updated.id());
+        assertEquals(log.userId(), updated.userId());
+        assertEquals(updated, repository.lastSaved);
+    }
+
+    @Test
+    void buildLogPlaceholdersResolvesNicknameAndFormatsValues() {
+        nicknameResolver.names.put(1L, "Alice");
+        final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+
+        final Map<String, String> placeholders = service.buildLogPlaceholders(log, GUILD_ID);
+
+        assertEquals("Alice", placeholders.get("nickname"));
+        assertEquals(log.id().toString(), placeholders.get("log_id"));
+        assertEquals("2h", placeholders.get("power_outage_time"));
+        assertEquals("<t:%d:t>".formatted(Instant.parse("2025-05-06T10:00:00Z").getEpochSecond()),
+                placeholders.get("electricity_out"));
+        assertEquals("<t:%d:t>".formatted(Instant.parse("2025-05-06T12:00:00Z").getEpochSecond()),
+                placeholders.get("electricity_in"));
+    }
+
     private static PowerOutageLog log(final long userId, final String electricityOut, final String electricityIn) {
         return new PowerOutageLog(UUID.randomUUID(), userId, Instant.parse(electricityOut),
                 Instant.parse(electricityIn));
@@ -172,9 +229,11 @@ class PowerOutageLogServiceImplTest {
      * Hand-written stubs because the project does not depend on a mocking library.
      */
     private static final class StubPowerOutageLogRepository implements PowerOutageLogRepository {
+        private final Map<UUID, PowerOutageLog> stored = new HashMap<>();
         private Instant rangeStart;
         private Instant rangeEnd;
         private List<PowerOutageLog> result = List.of();
+        private PowerOutageLog lastSaved;
 
         @Override
         public void initialize() throws SQLException {
@@ -186,6 +245,18 @@ class PowerOutageLogServiceImplTest {
 
         @Override
         public void save(final PowerOutageLog powerOutageLog) {
+            stored.put(powerOutageLog.id(), powerOutageLog);
+            lastSaved = powerOutageLog;
+        }
+
+        @Override
+        public Optional<PowerOutageLog> getById(final UUID id) {
+            return Optional.ofNullable(stored.get(id));
+        }
+
+        @Override
+        public void delete(final UUID id) {
+            stored.remove(id);
         }
 
         @Override

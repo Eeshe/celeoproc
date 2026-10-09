@@ -2,6 +2,10 @@ package me.eeshe.celeoproc.service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import me.eeshe.celeoproc.model.PowerOutageLog;
 import me.eeshe.celeoproc.model.PowerOutageStats;
@@ -21,6 +25,44 @@ public interface PowerOutageLogService {
      * @return the persisted log
      */
     PowerOutageLog logPowerOutage(long userId, Instant electricityOut, Instant electricityIn);
+
+    /**
+     * @param id id of the log to look up
+     * @return the stored log with the given id, or an empty optional when none
+     *         exists
+     */
+    Optional<PowerOutageLog> getById(UUID id);
+
+    /**
+     * Deletes the given log.
+     *
+     * @param log log to delete
+     * @return {@code true} when a stored log was deleted
+     */
+    boolean delete(PowerOutageLog log);
+
+    /**
+     * Overwrites the timestamps of an existing log. Both inputs are interpreted in
+     * the timezone configured in {@code AppSettings}.
+     *
+     * @param log            log to update
+     * @param electricityOut new moment the user's electricity went out
+     * @param electricityIn  new moment the user's electricity came back
+     * @return the updated log
+     */
+    PowerOutageLog updatePowerOutage(PowerOutageLog log, LocalDateTime electricityOut, LocalDateTime electricityIn);
+
+    /**
+     * Builds the configurable message placeholders describing the given log, so
+     * the command and listener layers do not need to resolve nicknames or format
+     * timestamps themselves.
+     *
+     * @param log     log to describe
+     * @param guildId guild the log is being displayed in
+     * @return placeholders for {@code nickname}, {@code electricity_out},
+     *         {@code electricity_in}, {@code power_outage_time} and {@code log_id}
+     */
+    Map<String, String> buildLogPlaceholders(PowerOutageLog log, long guildId);
 
     /**
      * @param guildId    id of the Discord guild the stats belong to. Logs are
