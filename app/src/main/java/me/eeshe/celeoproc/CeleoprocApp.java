@@ -13,6 +13,8 @@ public class CeleoprocApp {
     private static final Logger LOGGER = LoggerFactory.getLogger(CeleoprocApp.class);
 
     public static void main(String[] args) throws InterruptedException, SQLException {
+        System.setProperty("java.awt.headless", "true");
+
         final AppSecrets secrets = new AppSecrets();
         final AppSettings settings = new AppSettings();
         settings.load();

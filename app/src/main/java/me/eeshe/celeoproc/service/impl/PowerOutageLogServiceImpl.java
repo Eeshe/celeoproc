@@ -140,7 +140,7 @@ public final class PowerOutageLogServiceImpl implements PowerOutageLogService {
 
         final OutageStats serverStats = aggregate(serverLogs, resolveNicknames(guildId, serverLogs), true);
         final OutageStats globalStats = aggregate(globalLogs, Map.of(), false);
-        return new PowerOutageStats(serverStats, globalStats);
+        return new PowerOutageStats(serverStats, globalStats, serverLogs);
     }
 
     private Set<Long> collectParticipantUserIds(final long guildId) {

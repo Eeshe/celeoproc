@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.slf4j.api)
     runtimeOnly(libs.logback.classic)
     implementation(libs.hikaricp)
+    implementation(libs.jfreechart)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.testcontainers.postgresql)
@@ -39,6 +40,8 @@ application {
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+    // JFreeChart renders its charts through AWT, which must stay headless on CI.
+    systemProperty("java.awt.headless", "true")
 }
 
 // Load key=value pairs from the root .env file for local development convenience.

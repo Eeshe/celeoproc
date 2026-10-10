@@ -8,6 +8,7 @@ junit-jupiter = "6.0.1"
 testcontainers = "1.21.3"
 slf4j = "2.0.17"
 logback = "1.5.18"
+jfreechart = "1.5.6"
 
 hikaricp = "6.3.0"
 
@@ -19,3 +20,4 @@ testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+jfreechart = { module = "org.jfree:jfreechart", version.ref = "jfreechart" }

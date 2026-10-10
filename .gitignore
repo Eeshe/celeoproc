@@ -16,3 +16,6 @@ app/bin/
 .env
 config/settings.json
 config/messages.json
+
+# Generated power outage graphs
+data/
