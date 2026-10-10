@@ -22,11 +22,13 @@ import me.eeshe.celeoproc.registry.CommandRegistry;
 import me.eeshe.celeoproc.registry.impl.CommandRegistryImpl;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.PowerOutageLogRepository;
+import me.eeshe.celeoproc.repository.PowerOutageRegistryMessageRepository;
 import me.eeshe.celeoproc.repository.RegistryChannelRepository;
 import me.eeshe.celeoproc.repository.Repository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
 import me.eeshe.celeoproc.repository.impl.ElectricityStatusEmbedRepositoryImpl;
 import me.eeshe.celeoproc.repository.impl.PowerOutageLogRepositoryImpl;
+import me.eeshe.celeoproc.repository.impl.PowerOutageRegistryMessageRepositoryImpl;
 import me.eeshe.celeoproc.repository.impl.RegistryChannelRepositoryImpl;
 import me.eeshe.celeoproc.repository.impl.UserElectricityStatusRepositoryImpl;
 import me.eeshe.celeoproc.scheduler.BotScheduler;
@@ -38,6 +40,7 @@ import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.NicknameResolver;
 import me.eeshe.celeoproc.service.PowerOutageGraphService;
 import me.eeshe.celeoproc.service.PowerOutageLogService;
+import me.eeshe.celeoproc.service.PowerOutageRegistryMessageService;
 import me.eeshe.celeoproc.service.RegistryChannelService;
 import me.eeshe.celeoproc.service.UserElectricityStatusService;
 import me.eeshe.celeoproc.service.impl.ElectricityRegistryServiceImpl;
@@ -46,6 +49,7 @@ import me.eeshe.celeoproc.service.impl.JDANicknameResolver;
 import me.eeshe.celeoproc.service.impl.MessageServiceImpl;
 import me.eeshe.celeoproc.service.impl.PowerOutageGraphServiceImpl;
 import me.eeshe.celeoproc.service.impl.PowerOutageLogServiceImpl;
+import me.eeshe.celeoproc.service.impl.PowerOutageRegistryMessageServiceImpl;
 import me.eeshe.celeoproc.service.impl.RegistryChannelServiceImpl;
 import me.eeshe.celeoproc.service.impl.UserElectricityStatusServiceImpl;
 import net.dv8tion.jda.api.JDA;
@@ -65,6 +69,7 @@ public final class Bot {
     private ElectricityRegistryService electricityRegistryService;
     private PowerOutageLogService powerOutageLogService;
     private PowerOutageGraphService powerOutageGraphService;
+    private PowerOutageRegistryMessageService powerOutageRegistryMessageService;
     private UserElectricityStatusService userElectricityStatusService;
     private RegistryChannelService registryChannelService;
     private CommandRegistry commandRegistry;
@@ -78,6 +83,7 @@ public final class Bot {
     private ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
     private RegistryChannelRepository registryChannelRepository;
     private PowerOutageLogRepository powerOutageLogRepository;
+    private PowerOutageRegistryMessageRepository powerOutageRegistryMessageRepository;
 
     public Bot(final AppSettings appSettings, final AppSecrets appSecrets, final AppMessages appMessages) {
         Objects.requireNonNull(appSettings, "AppSettings must not be null");
@@ -114,14 +120,17 @@ public final class Bot {
                 userElectricityStatusRepository, messageService, nicknameResolver, appSettings, bot);
         this.registryChannelService = new RegistryChannelServiceImpl(registryChannelRepository,
                 electricityStatusEmbedService);
-        this.electricityRegistryService = new ElectricityRegistryServiceImpl(registryChannelService, messageService,
-                nicknameResolver, bot);
+        this.powerOutageRegistryMessageService = new PowerOutageRegistryMessageServiceImpl(
+                powerOutageRegistryMessageRepository);
         this.powerOutageLogService = new PowerOutageLogServiceImpl(powerOutageLogRepository,
                 electricityStatusEmbedService, nicknameResolver, appSettings);
+        this.electricityRegistryService = new ElectricityRegistryServiceImpl(registryChannelService,
+                powerOutageRegistryMessageService, messageService,
+                nicknameResolver, powerOutageLogService, bot);
         this.powerOutageGraphService = new PowerOutageGraphServiceImpl(appSettings, nicknameResolver, messageService);
         this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository,
                 electricityStatusEmbedRepository, electricityStatusEmbedService, electricityRegistryService,
-                powerOutageLogService, appSettings);
+                powerOutageLogService, powerOutageRegistryMessageService, appSettings);
     }
 
     private void initializeSchedulers() {
@@ -193,6 +202,9 @@ public final class Bot {
 
         this.powerOutageLogRepository = new PowerOutageLogRepositoryImpl(database);
         powerOutageLogRepository.initialize();
+
+        this.powerOutageRegistryMessageRepository = new PowerOutageRegistryMessageRepositoryImpl(database);
+        powerOutageRegistryMessageRepository.initialize();
     }
 
     public AppSettings getAppSettings() {
@@ -266,6 +278,10 @@ public final class Bot {
         return powerOutageLogRepository;
     }
 
+    public PowerOutageRegistryMessageService getPowerOutageRegistryMessageService() {
+        return powerOutageRegistryMessageService;
+    }
+
     public void shutdown() {
         for (final BotScheduler scheduler : botSchedulers) {
             scheduler.shutdown();
@@ -282,6 +298,7 @@ public final class Bot {
         shutdownRepository(electricityStatusEmbedRepository);
         shutdownRepository(registryChannelRepository);
         shutdownRepository(powerOutageLogRepository);
+        shutdownRepository(powerOutageRegistryMessageRepository);
     }
 
     private void shutdownRepository(final Repository repository) {

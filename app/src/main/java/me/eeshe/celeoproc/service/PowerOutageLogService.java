@@ -16,15 +16,38 @@ import me.eeshe.celeoproc.model.PowerOutageStats;
 public interface PowerOutageLogService {
 
     /**
-     * Creates a log for an already ended power outage and persists it
-     * immediately. The id is generated automatically.
+     * Creates a log for a power outage that just started and persists it
+     * immediately, leaving the electricity in moment {@code null}. The id is
+     * generated automatically.
      *
      * @param userId         Discord user id the outage belongs to
      * @param electricityOut moment the user's electricity went out
-     * @param electricityIn  moment the user's electricity came back
-     * @return the persisted log
+     * @return the persisted incomplete log
      */
-    PowerOutageLog logPowerOutage(long userId, Instant electricityOut, Instant electricityIn);
+    PowerOutageLog startPowerOutage(long userId, Instant electricityOut);
+
+    /**
+     * @param userId Discord user id the outage belongs to
+     * @return the newest stored log of the user whose electricity has not come
+     *         back yet, or an empty optional when none exists
+     */
+    Optional<PowerOutageLog> getIncompletePowerOutageLog(long userId);
+
+    /**
+     * @param userId        Discord user id the outage belongs to
+     * @param beforeInstant exclusive upper bound for the log's electricity out
+     * @return the newest completed log of the user that started before the given
+     *         instant, or an empty optional when none exists
+     */
+    Optional<PowerOutageLog> getPreviousCompletedPowerOutageLog(long userId, Instant beforeInstant);
+
+    /**
+     * Overwrites the stored log with the same id, persisting all of its fields.
+     *
+     * @param log log to update
+     * @return the updated log
+     */
+    PowerOutageLog update(PowerOutageLog log);
 
     /**
      * @param id id of the log to look up

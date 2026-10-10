@@ -38,7 +38,7 @@ public final class PowerOutageLogRepositoryImpl implements PowerOutageLogReposit
                 %s UUID PRIMARY KEY,
                 %s BIGINT NOT NULL,
                 %s TIMESTAMPTZ NOT NULL,
-                %s TIMESTAMPTZ NOT NULL
+                %s TIMESTAMPTZ
             )""".formatted(
             TABLE,
             COLUMN_ID,
@@ -52,17 +52,44 @@ public final class PowerOutageLogRepositoryImpl implements PowerOutageLogReposit
 
     private static final String SAVE_SQL = """
             INSERT INTO %s (%s)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT (%s) DO UPDATE SET
-                %s = EXCLUDED.%s,
-                %s = EXCLUDED.%s,
-                %s = EXCLUDED.%s""".formatted(
+            VALUES (?, ?, ?, ?)""".formatted(
             TABLE,
+            SELECT_COLUMNS);
+
+    private static final String UPDATE_SQL = """
+            UPDATE %s SET
+                %s = ?,
+                %s = ?,
+                %s = ?
+            WHERE %s = ?""".formatted(
+            TABLE,
+            COLUMN_USER_ID,
+            COLUMN_ELECTRICITY_OUT,
+            COLUMN_ELECTRICITY_IN,
+            COLUMN_ID);
+
+    private static final String GET_INCOMPLETE_SQL = """
+            SELECT %s FROM %s
+            WHERE %s = ? AND %s IS NULL
+            ORDER BY %s DESC
+            LIMIT 1""".formatted(
             SELECT_COLUMNS,
-            COLUMN_ID,
-            COLUMN_USER_ID, COLUMN_USER_ID,
-            COLUMN_ELECTRICITY_OUT, COLUMN_ELECTRICITY_OUT,
-            COLUMN_ELECTRICITY_IN, COLUMN_ELECTRICITY_IN);
+            TABLE,
+            COLUMN_USER_ID,
+            COLUMN_ELECTRICITY_IN,
+            COLUMN_ELECTRICITY_OUT);
+
+    private static final String GET_PREVIOUS_COMPLETED_SQL = """
+            SELECT %s FROM %s
+            WHERE %s = ? AND %s IS NOT NULL AND %s < ?
+            ORDER BY %s DESC
+            LIMIT 1""".formatted(
+            SELECT_COLUMNS,
+            TABLE,
+            COLUMN_USER_ID,
+            COLUMN_ELECTRICITY_IN,
+            COLUMN_ELECTRICITY_OUT,
+            COLUMN_ELECTRICITY_OUT);
 
     private static final String GET_BY_ID_SQL = "SELECT %s FROM %s WHERE %s = ?".formatted(
             SELECT_COLUMNS,
@@ -124,6 +151,62 @@ public final class PowerOutageLogRepositoryImpl implements PowerOutageLogReposit
     }
 
     @Override
+    public void update(final PowerOutageLog powerOutageLog) {
+        Objects.requireNonNull(powerOutageLog, "PowerOutageLog must not be null");
+
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(UPDATE_SQL)) {
+            statement.setLong(1, powerOutageLog.userId());
+            JdbcTypeMapper.setInstant(statement, 2, powerOutageLog.electricityOut());
+            JdbcTypeMapper.setInstant(statement, 3, powerOutageLog.electricityIn());
+            statement.setObject(4, powerOutageLog.id());
+
+            statement.executeUpdate();
+        } catch (final SQLException exception) {
+            LOGGER.error("Failed to update power outage log '{}'", powerOutageLog.id(), exception);
+        }
+    }
+
+    @Override
+    public Optional<PowerOutageLog> getIncompletePowerOutageLog(final long userId) {
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(GET_INCOMPLETE_SQL)) {
+            statement.setLong(1, userId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapRow(resultSet));
+                }
+            }
+        } catch (final SQLException exception) {
+            LOGGER.error("Failed to load incomplete power outage log for user '{}'", userId, exception);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<PowerOutageLog> getPreviousCompletedPowerOutageLog(
+            final long userId,
+            final Instant beforeInstant) {
+        Objects.requireNonNull(beforeInstant, "Before instant must not be null");
+
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(GET_PREVIOUS_COMPLETED_SQL)) {
+            statement.setLong(1, userId);
+            JdbcTypeMapper.setInstant(statement, 2, beforeInstant);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapRow(resultSet));
+                }
+            }
+        } catch (final SQLException exception) {
+            LOGGER.error("Failed to load previous completed power outage log for user '{}'", userId, exception);
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<PowerOutageLog> getById(final UUID id) {
         Objects.requireNonNull(id, "Id must not be null");
 
@@ -161,6 +244,8 @@ public final class PowerOutageLogRepositoryImpl implements PowerOutageLogReposit
         Objects.requireNonNull(rangeStart, "Range start must not be null");
         Objects.requireNonNull(rangeEnd, "Range end must not be null");
 
+        // Incomplete logs (electricity_in IS NULL) never match the range predicate,
+        // so they are intentionally excluded from the stats and graphs.
         final List<PowerOutageLog> powerOutageLogs = new ArrayList<>();
         try (Connection connection = database.getConnection();
                 PreparedStatement statement = connection.prepareStatement(GET_LOGS_SQL)) {

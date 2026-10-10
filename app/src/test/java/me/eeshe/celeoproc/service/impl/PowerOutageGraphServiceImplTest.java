@@ -70,9 +70,9 @@ class PowerOutageGraphServiceImplTest {
 
     @Test
     void generateGraphsSplitsOutagesCrossingMonthBoundaries() throws IOException {
-        final ZoneId zone = appSettings.getTimezone();
-        final Instant electricityOut = LocalDateTime.of(2025, 5, 31, 23, 0).atZone(zone).toInstant();
-        final Instant electricityIn = LocalDateTime.of(2025, 6, 1, 1, 0).atZone(zone).toInstant();
+        final ZoneId timezone = appSettings.getTimezone();
+        final Instant electricityOut = LocalDateTime.of(2025, 5, 31, 23, 0).atZone(timezone).toInstant();
+        final Instant electricityIn = LocalDateTime.of(2025, 6, 1, 1, 0).atZone(timezone).toInstant();
 
         final List<Path> graphs = service.generateGraphs(100L,
                 List.of(new PowerOutageLog(UUID.randomUUID(), 1L, electricityOut, electricityIn)));

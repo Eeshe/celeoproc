@@ -1,6 +1,7 @@
 package me.eeshe.celeoproc.repository.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -147,16 +148,75 @@ class PowerOutageLogRepositoryImplTest {
     }
 
     @Test
-    void saveOverwritesExistingLog() {
-        final PowerOutageLog original = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
-        repository.save(original);
+    void savePersistsNullElectricityIn() {
+        final PowerOutageLog incomplete = new PowerOutageLog(UUID.randomUUID(), 1L,
+                Instant.parse("2025-05-06T10:00:00Z"), null);
 
-        final PowerOutageLog updated = new PowerOutageLog(original.id(), 2L,
-                Instant.parse("2025-05-06T13:00:00Z"), Instant.parse("2025-05-06T15:00:00Z"));
-        repository.save(updated);
+        repository.save(incomplete);
 
-        assertEquals(Optional.of(updated), repository.getById(original.id()));
-        assertEquals(1, repository.getWithinRange(RANGE_START, RANGE_END).size());
+        final Optional<PowerOutageLog> stored = repository.getById(incomplete.id());
+        assertEquals(Optional.of(incomplete), stored);
+        assertNull(stored.orElseThrow().electricityIn());
+    }
+
+    @Test
+    void updateFillsElectricityIn() {
+        final PowerOutageLog incomplete = new PowerOutageLog(UUID.randomUUID(), 1L,
+                Instant.parse("2025-05-06T10:00:00Z"), null);
+        repository.save(incomplete);
+
+        final PowerOutageLog completed = new PowerOutageLog(incomplete.id(), 1L,
+                incomplete.electricityOut(), Instant.parse("2025-05-06T12:00:00Z"));
+        repository.update(completed);
+
+        assertEquals(Optional.of(completed), repository.getById(incomplete.id()));
+    }
+
+    @Test
+    void getIncompletePowerOutageLogReturnsNewestIncompleteLog() {
+        repository.save(new PowerOutageLog(UUID.randomUUID(), 1L,
+                Instant.parse("2025-05-06T10:00:00Z"), null));
+        final PowerOutageLog newest = new PowerOutageLog(UUID.randomUUID(), 1L,
+                Instant.parse("2025-05-07T10:00:00Z"), null);
+        repository.save(newest);
+        repository.save(log(1L, "2025-05-08T10:00:00Z", "2025-05-08T12:00:00Z"));
+
+        assertEquals(Optional.of(newest), repository.getIncompletePowerOutageLog(1L));
+        assertTrue(repository.getIncompletePowerOutageLog(99L).isEmpty());
+    }
+
+    @Test
+    void getPreviousCompletedPowerOutageLogReturnsNewestBeforeInstant() {
+        final PowerOutageLog earlier = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+        final PowerOutageLog later = log(1L, "2025-05-07T10:00:00Z", "2025-05-07T12:00:00Z");
+        repository.save(earlier);
+        repository.save(later);
+
+        assertEquals(Optional.of(earlier),
+                repository.getPreviousCompletedPowerOutageLog(1L, Instant.parse("2025-05-07T10:00:00Z")));
+        assertEquals(Optional.of(later),
+                repository.getPreviousCompletedPowerOutageLog(1L, Instant.parse("2025-05-08T00:00:00Z")));
+        assertTrue(repository.getPreviousCompletedPowerOutageLog(99L, Instant.parse("2025-05-08T00:00:00Z"))
+                .isEmpty());
+    }
+
+    @Test
+    void getPreviousCompletedPowerOutageLogExcludesIncompleteLogs() {
+        final PowerOutageLog completed = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+        repository.save(completed);
+        repository.save(new PowerOutageLog(UUID.randomUUID(), 1L,
+                Instant.parse("2025-05-07T10:00:00Z"), null));
+
+        assertEquals(Optional.of(completed),
+                repository.getPreviousCompletedPowerOutageLog(1L, Instant.parse("2025-05-08T00:00:00Z")));
+    }
+
+    @Test
+    void getWithinRangeExcludesIncompleteLogs() {
+        repository.save(new PowerOutageLog(UUID.randomUUID(), 1L,
+                Instant.parse("2025-05-06T10:00:00Z"), null));
+
+        assertTrue(repository.getWithinRange(RANGE_START, RANGE_END).isEmpty());
     }
 
     private static PowerOutageLog log(final long userId, final String electricityOut, final String electricityIn) {

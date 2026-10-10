@@ -86,15 +86,14 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
     }
 
     /**
-     * @param id        id of the log the button belongs to
-     * @param messageId id of the registry message the confirmation acts on
-     * @return custom id encoding the log and message ids for the delete
+     * @param id id of the log the button belongs to
+     * @return custom id encoding the log id for the delete
      *         confirmation button
      */
-    public static String computeDeleteConfirmationButtonId(final UUID id, final long messageId) {
+    public static String computeDeleteConfirmationButtonId(final UUID id) {
         Objects.requireNonNull(id, "Id must not be null");
 
-        return DELETE_CONFIRM_BUTTON_ID_PREFIX + ":" + id + ":" + messageId;
+        return DELETE_CONFIRM_BUTTON_ID_PREFIX + ":" + id;
     }
 
     /**
@@ -179,7 +178,7 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
         }
         final PowerOutageLog log = logOptional.get();
         final Button confirmButton = Button.danger(
-                computeDeleteConfirmationButtonId(log.id(), event.getMessageIdLong()),
+                computeDeleteConfirmationButtonId(log.id()),
                 messageService.get(Message.DELETE_POWER_OUTAGE_CONFIRM_BUTTON));
         event.reply(messageService.get(Message.DELETE_POWER_OUTAGE_CONFIRM,
                 powerOutageLogService.buildLogPlaceholders(log, guild.getIdLong())))
@@ -189,19 +188,27 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
     }
 
     private void handleDeleteConfirmationButton(final ButtonInteractionEvent event) {
-        final DeleteConfirmation confirmation = parseDeleteConfirmationId(event.getComponentId());
-        if (confirmation == null) {
+        final UUID logId = parseLogId(event.getComponentId(), DELETE_CONFIRM_BUTTON_ID_PREFIX);
+        if (logId == null) {
             return;
         }
-        final Optional<PowerOutageLog> powerOutageLog = powerOutageLogService.getById(confirmation.logId());
-        if (powerOutageLog.isEmpty() || !powerOutageLogService.delete(powerOutageLog.get())) {
+        final Optional<PowerOutageLog> powerOutageLog = powerOutageLogService.getById(logId);
+        if (powerOutageLog.isEmpty()) {
             deleteEphemeralAndReply(event, messageService.get(Message.POWER_OUTAGE_LOG_NOT_FOUND,
-                    Map.of("log_id", confirmation.logId().toString())));
+                    Map.of("log_id", logId.toString())));
             return;
         }
-        electricityRegistryService.deleteElectricityIn(event.getChannel(), confirmation.messageId());
+        final PowerOutageLog log = powerOutageLog.get();
+        // Delete the Discord messages before the log, since deleting the log cascades
+        // away the registry message rows the messages are resolved from.
+        electricityRegistryService.deleteRegistryMessages(log);
+        if (!powerOutageLogService.delete(log)) {
+            deleteEphemeralAndReply(event, messageService.get(Message.POWER_OUTAGE_LOG_NOT_FOUND,
+                    Map.of("log_id", logId.toString())));
+            return;
+        }
         deleteEphemeralAndReply(event, messageService.get(Message.DELETE_POWER_OUTAGE_SUCCESS,
-                Map.of("log_id", confirmation.logId().toString())));
+                Map.of("log_id", logId.toString())));
     }
 
     /**
@@ -233,15 +240,15 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
     }
 
     private Modal buildEditModal(final PowerOutageLog log) {
-        final ZoneId zone = appSettings.getTimezone();
+        final ZoneId timezone = appSettings.getTimezone();
         final TextInput electricityOutInput = TextInput
                 .create(ELECTRICITY_OUT_INPUT_ID, TextInputStyle.SHORT)
-                .setPlaceholder(log.electricityOut().atZone(zone).format(MODAL_DATE_TIME_DISPLAY_FORMATTER))
+                .setPlaceholder(log.electricityOut().atZone(timezone).format(MODAL_DATE_TIME_DISPLAY_FORMATTER))
                 .setRequired(false)
                 .build();
         final TextInput electricityInInput = TextInput
                 .create(ELECTRICITY_IN_INPUT_ID, TextInputStyle.SHORT)
-                .setPlaceholder(log.electricityIn().atZone(zone).format(MODAL_DATE_TIME_DISPLAY_FORMATTER))
+                .setPlaceholder(log.electricityIn().atZone(timezone).format(MODAL_DATE_TIME_DISPLAY_FORMATTER))
                 .setRequired(false)
                 .build();
 
@@ -323,10 +330,7 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
                 Map.of("log_id", updatedLog.id().toString())))
                 .setEphemeral(true)
                 .queue();
-        final net.dv8tion.jda.api.entities.Message originalMessage = event.getMessage();
-        if (originalMessage != null) {
-            electricityRegistryService.editElectricityIn(originalMessage, updatedLog);
-        }
+        electricityRegistryService.editRegistryMessages(updatedLog);
     }
 
     private String readValue(final ModalInteractionEvent event, final String inputId) {
@@ -406,31 +410,5 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
         } catch (final IllegalArgumentException exception) {
             return null;
         }
-    }
-
-    /**
-     * Parses a delete confirmation custom id with the shape
-     * {@code prefix:logId:messageId}.
-     *
-     * @param customId custom id to parse
-     * @return the encoded ids, or {@code null} when the custom id does not match
-     */
-    private DeleteConfirmation parseDeleteConfirmationId(final String customId) {
-        final String fullPrefix = DELETE_CONFIRM_BUTTON_ID_PREFIX + ":";
-        if (customId == null || !customId.startsWith(fullPrefix)) {
-            return null;
-        }
-        final String[] parts = customId.substring(fullPrefix.length()).split(":", 2);
-        if (parts.length != 2) {
-            return null;
-        }
-        try {
-            return new DeleteConfirmation(UUID.fromString(parts[0]), Long.parseLong(parts[1]));
-        } catch (final IllegalArgumentException exception) {
-            return null;
-        }
-    }
-
-    private record DeleteConfirmation(UUID logId, long messageId) {
     }
 }

@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -185,6 +186,29 @@ class PowerOutageLogServiceImplTest {
     }
 
     @Test
+    void startPowerOutagePersistsIncompleteLog() {
+        final Instant electricityOut = Instant.parse("2025-05-06T10:00:00Z");
+
+        final PowerOutageLog log = service.startPowerOutage(1L, electricityOut);
+
+        assertNull(log.electricityIn());
+        assertEquals(electricityOut, log.electricityOut());
+        assertEquals(Optional.of(log), repository.getById(log.id()));
+    }
+
+    @Test
+    void updateOverwritesStoredLog() {
+        final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
+        repository.stored.put(log.id(), log);
+
+        final PowerOutageLog updated = new PowerOutageLog(log.id(), log.userId(), log.electricityOut(),
+                Instant.parse("2025-05-06T13:00:00Z"));
+        service.update(updated);
+
+        assertEquals(Optional.of(updated), repository.getById(log.id()));
+    }
+
+    @Test
     void updatePowerOutageConvertsInputsToConfiguredTimezone() {
         final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
 
@@ -248,6 +272,28 @@ class PowerOutageLogServiceImplTest {
         public void save(final PowerOutageLog powerOutageLog) {
             stored.put(powerOutageLog.id(), powerOutageLog);
             lastSaved = powerOutageLog;
+        }
+
+        @Override
+        public void update(final PowerOutageLog powerOutageLog) {
+            stored.put(powerOutageLog.id(), powerOutageLog);
+            lastSaved = powerOutageLog;
+        }
+
+        @Override
+        public Optional<PowerOutageLog> getIncompletePowerOutageLog(final long userId) {
+            return stored.values().stream()
+                    .filter(log -> log.userId() == userId && !log.hasElectricityIn())
+                    .max(Comparator.comparing(PowerOutageLog::electricityOut));
+        }
+
+        @Override
+        public Optional<PowerOutageLog> getPreviousCompletedPowerOutageLog(final long userId,
+                final Instant beforeInstant) {
+            return stored.values().stream()
+                    .filter(log -> log.userId() == userId && log.hasElectricityIn()
+                            && log.electricityOut().isBefore(beforeInstant))
+                    .max(Comparator.comparing(PowerOutageLog::electricityOut));
         }
 
         @Override
