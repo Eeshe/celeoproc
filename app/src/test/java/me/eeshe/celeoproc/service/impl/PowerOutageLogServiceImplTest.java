@@ -12,7 +12,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,7 @@ import me.eeshe.celeoproc.model.PowerOutageStats;
 import me.eeshe.celeoproc.model.UserOutageStats;
 import me.eeshe.celeoproc.repository.PowerOutageLogRepository;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
-import me.eeshe.celeoproc.service.NicknameResolver;
+import me.eeshe.celeoproc.support.StubNicknameResolver;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 /**
@@ -99,6 +98,8 @@ class PowerOutageLogServiceImplTest {
         assertEquals(2, server.userStats().size());
         assertEquals(Duration.ofHours(2).plusMinutes(30), server.awardWinner().totalTime());
 
+        assertEquals(List.of(userOneLong, userOneShort, userTwo), stats.serverLogs());
+
         final OutageStats global = stats.global();
         assertEquals(4, global.logAmount());
         assertEquals(Duration.ofHours(7).plusMinutes(30), global.totalTime());
@@ -125,7 +126,7 @@ class PowerOutageLogServiceImplTest {
     @Test
     void getWithinRangeResolvesNicknamesAndFallsBackToUserId() {
         electricityStatusEmbedService.addEmbed(guildEmbed(GUILD_ID, 1L, 3L));
-        nicknameResolver.names.put(1L, "Alice");
+        nicknameResolver.setName(1L, "Alice");
         repository.result = List.of(
                 log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z"),
                 log(3L, "2025-05-07T10:00:00Z", "2025-05-07T11:00:00Z"));
@@ -201,7 +202,7 @@ class PowerOutageLogServiceImplTest {
 
     @Test
     void buildLogPlaceholdersResolvesNicknameAndFormatsValues() {
-        nicknameResolver.names.put(1L, "Alice");
+        nicknameResolver.setName(1L, "Alice");
         final PowerOutageLog log = log(1L, "2025-05-06T10:00:00Z", "2025-05-06T12:00:00Z");
 
         final Map<String, String> placeholders = service.buildLogPlaceholders(log, GUILD_ID);
@@ -305,24 +306,6 @@ class PowerOutageLogServiceImplTest {
 
         @Override
         public void deleteElectricityStatusEmbed(final long messageId) {
-        }
-    }
-
-    private static final class StubNicknameResolver implements NicknameResolver {
-        private final Map<Long, String> names = new HashMap<>();
-
-        @Override
-        public String resolveNickname(final long guildId, final long userId) {
-            return names.get(userId);
-        }
-
-        @Override
-        public Map<Long, String> resolveNicknames(final long guildId, final Collection<Long> userIds) {
-            final Map<Long, String> resolved = new HashMap<>();
-            for (final Long userId : userIds) {
-                resolved.put(userId, names.get(userId));
-            }
-            return resolved;
         }
     }
 }

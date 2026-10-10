@@ -1,5 +1,6 @@
 package me.eeshe.celeoproc.command;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -7,14 +8,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.config.Message;
 import me.eeshe.celeoproc.model.OutageExtreme;
 import me.eeshe.celeoproc.model.OutageStats;
+import me.eeshe.celeoproc.model.PowerOutageLog;
 import me.eeshe.celeoproc.model.PowerOutageStats;
 import me.eeshe.celeoproc.model.UserOutageStats;
 import me.eeshe.celeoproc.service.MessageService;
+import me.eeshe.celeoproc.service.PowerOutageGraphService;
 import me.eeshe.celeoproc.service.PowerOutageLogService;
 import me.eeshe.celeoproc.util.DurationFormatter;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -25,28 +32,42 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.utils.FileUpload;
 
 public final class PostElectricityStatsCommand implements BotCommand {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PostElectricityStatsCommand.class);
+
     public static final String NAME = "postelectricitystats";
     private static final String START_DATE_OPTION = "start_date";
     private static final String END_DATE_OPTION = "end_date";
+    private static final int MAX_FILES_PER_MESSAGE = 10;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final MessageService messageService;
     private final PowerOutageLogService powerOutageLogService;
+    private final PowerOutageGraphService powerOutageGraphService;
     private final AppSettings appSettings;
 
+    /**
+     * @param messageService          source of the configurable command messages
+     * @param powerOutageLogService   source of the aggregated outage stats
+     * @param powerOutageGraphService renderer of the outage graphs
+     * @param appSettings             settings providing the stats thumbnail url
+     */
     public PostElectricityStatsCommand(
             final MessageService messageService,
             final PowerOutageLogService powerOutageLogService,
+            final PowerOutageGraphService powerOutageGraphService,
             final AppSettings appSettings) {
         Objects.requireNonNull(messageService, "MessageService must not be null");
         Objects.requireNonNull(powerOutageLogService, "PowerOutageLogService must not be null");
+        Objects.requireNonNull(powerOutageGraphService, "PowerOutageGraphService must not be null");
         Objects.requireNonNull(appSettings, "AppSettings must not be null");
 
         this.messageService = messageService;
         this.powerOutageLogService = powerOutageLogService;
+        this.powerOutageGraphService = powerOutageGraphService;
         this.appSettings = appSettings;
     }
 
@@ -104,6 +125,48 @@ public final class PostElectricityStatsCommand implements BotCommand {
             event.getHook().sendMessage(messageService.get(Message.ELECTRICITY_STATS_GLOBAL_NO_DATA))
                     .setEphemeral(true)
                     .queue();
+        }
+
+        if (stats.server().logAmount() > 0) {
+            sendGraphs(event, guild.getIdLong(), stats.serverLogs());
+        }
+    }
+
+    /**
+     * Renders the outage graphs off the interaction thread and sends them once
+     * ready, so the embeds are not delayed by image generation.
+     */
+    private void sendGraphs(
+            final SlashCommandInteractionEvent event,
+            final long guildId,
+            final List<PowerOutageLog> logs) {
+        CompletableFuture.supplyAsync(() -> powerOutageGraphService.generateGraphs(guildId, logs))
+                .thenAccept(graphs -> sendGraphMessages(event, graphs))
+                .exceptionally(exception -> {
+                    LOGGER.error("Failed to generate power outage graphs for guild {}", guildId, exception);
+                    event.getHook().sendMessage(messageService.get(Message.GENERIC_ERROR)).queue();
+                    return null;
+                });
+    }
+
+    /**
+     * Uploads the graphs in chunks of {@value #MAX_FILES_PER_MESSAGE}, Discord's
+     * per-message attachment limit. Each file is deleted once its message has
+     * been sent.
+     */
+    private void sendGraphMessages(final SlashCommandInteractionEvent event, final List<Path> graphs) {
+        for (int start = 0; start < graphs.size(); start += MAX_FILES_PER_MESSAGE) {
+            final int end = Math.min(start + MAX_FILES_PER_MESSAGE, graphs.size());
+            final List<Path> chunk = List.copyOf(graphs.subList(start, end));
+            final List<FileUpload> uploads = chunk.stream()
+                    .map(FileUpload::fromData)
+                    .toList();
+            event.getHook().sendFiles(uploads).queue(
+                    success -> powerOutageGraphService.deleteGraphs(chunk),
+                    failure -> {
+                        LOGGER.error("Failed to send a power outage graph message", failure);
+                        powerOutageGraphService.deleteGraphs(chunk);
+                    });
         }
     }
 

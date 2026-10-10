@@ -67,6 +67,11 @@ public enum Message {
     ELECTRICITY_STATS_GLOBAL_AVERAGE_TIME("electricity_stats_global_average_time"),
     ELECTRICITY_STATS_GLOBAL_DISCLAIMER("electricity_stats_global_disclaimer"),
 
+    POWER_OUTAGE_GRAPH_USER_TITLE("power_outage_graph_user_title"),
+    POWER_OUTAGE_GRAPH_COMBINED_TITLE("power_outage_graph_combined_title"),
+    POWER_OUTAGE_GRAPH_DAY_AXIS("power_outage_graph_day_axis"),
+    POWER_OUTAGE_GRAPH_HOUR_AXIS("power_outage_graph_hour_axis"),
+
     POWER_OUTAGE_LOG_NOT_FOUND("power_outage_log_not_found"),
     POWER_OUTAGE_EDIT_BUTTON("power_outage_edit_button", Button.LABEL_MAX_LENGTH),
     POWER_OUTAGE_DELETE_BUTTON("power_outage_delete_button", Button.LABEL_MAX_LENGTH),
