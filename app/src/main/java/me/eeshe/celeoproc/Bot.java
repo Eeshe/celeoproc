@@ -4,6 +4,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +81,7 @@ public final class Bot {
     private final List<BotScheduler> botSchedulers = new ArrayList<>();
 
     private JDA bot;
+    private ExecutorService interactionExecutor;
     private Database database;
     private UserElectricityStatusRepository userElectricityStatusRepository;
     private ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
@@ -98,6 +102,7 @@ public final class Bot {
 
     public void initialize() throws SQLException, InterruptedException {
         initializeDatabase();
+        initializeInteractionExecutor();
 
         LOGGER.info("Starting Discord bot");
         this.bot = JDABuilder.createDefault(appSecrets.getDiscordBotToken()).build();
@@ -126,7 +131,7 @@ public final class Bot {
                 electricityStatusEmbedService, nicknameResolver, appSettings);
         this.electricityRegistryService = new ElectricityRegistryServiceImpl(registryChannelService,
                 powerOutageRegistryMessageService, messageService,
-                nicknameResolver, powerOutageLogService, bot);
+                nicknameResolver, powerOutageLogService, bot, interactionExecutor);
         this.powerOutageGraphService = new PowerOutageGraphServiceImpl(appSettings, nicknameResolver, messageService);
         this.userElectricityStatusService = new UserElectricityStatusServiceImpl(userElectricityStatusRepository,
                 electricityStatusEmbedRepository, electricityStatusEmbedService, electricityRegistryService,
@@ -152,9 +157,10 @@ public final class Bot {
     private void registerListeners() {
         bot.addEventListener(new CommandListener(commandRegistry));
         bot.addEventListener(new ElectricityStatusEmbedListener(electricityStatusEmbedService,
-                userElectricityStatusService, registryChannelService, messageService, appSettings));
+                userElectricityStatusService, registryChannelService, messageService, appSettings,
+                interactionExecutor));
         bot.addEventListener(new PowerOutageManagementListener(powerOutageLogService, messageService, appSettings,
-                electricityRegistryService));
+                electricityRegistryService, interactionExecutor));
     }
 
     private void registerCommands() {
@@ -181,6 +187,11 @@ public final class Bot {
     private List<CommandData> computeCommandData() {
         return commandRegistry.getCommands()
                 .stream().map(BotCommand::createCommandData).toList();
+    }
+
+    private void initializeInteractionExecutor() {
+        this.interactionExecutor = Executors.newThreadPerTaskExecutor(
+                Thread.ofVirtual().name("celeoproc-interaction-", 0).factory());
     }
 
     private void initializeDatabase() throws SQLException {
@@ -283,6 +294,7 @@ public final class Bot {
     }
 
     public void shutdown() {
+        shutdownInteractionExecutor();
         for (final BotScheduler scheduler : botSchedulers) {
             scheduler.shutdown();
         }
@@ -291,6 +303,21 @@ public final class Bot {
         }
         shutdownRepositories();
         shutdownDatabase();
+    }
+
+    private void shutdownInteractionExecutor() {
+        if (interactionExecutor == null) {
+            return;
+        }
+        interactionExecutor.shutdown();
+        try {
+            if (!interactionExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                interactionExecutor.shutdownNow();
+            }
+        } catch (final InterruptedException exception) {
+            interactionExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void shutdownRepositories() {

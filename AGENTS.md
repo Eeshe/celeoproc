@@ -31,3 +31,23 @@ JDA (Discord Bot API): https://docs.jda.wiki/index.html
   the combined chart's user label) must be non-null. `NicknameResolver`
   implementations — including the shared test double — must therefore never
   return `null`; `JDANicknameResolver` falls back to the user id.
+- **Why do interactions fail with `10062 Unknown interaction`?** JDA dispatches
+  listeners on the gateway event thread, and Discord requires an
+  acknowledgment within 3 seconds. Any handler that runs JDBC, a nickname
+  lookup, or a `RestAction.submit()`/`join()` (e.g.
+  `UserElectricityStatusServiceImpl` waiting on the electricity registry
+  messages) must acknowledge first — `event.deferEdit()` / `event.replyModal()`
+  — and offload the slow work to the executor `Bot` creates
+  (`interactionExecutor`, virtual threads, shut down first in `Bot.shutdown()`).
+  After deferring, validation errors are sent as ephemeral follow-ups through
+  `event.getHook()` / the queued hook, not `event.reply(...)`.
+- **Why must `ElectricityRegistryServiceImpl` snapshot registry rows before
+  going async?** `editRegistryMessages`/`deleteRegistryMessages` read
+  `powerOutageRegistryMessageService.getByPowerOutageLogId(...)` synchronously
+  and only then submit the channel/nickname lookups and REST calls to
+  `Bot.interactionExecutor`. The snapshot is mandatory because
+  `power_outage_registry_message.power_outage_log_id` is
+  `REFERENCES power_outage_log(id) ON DELETE CASCADE`:
+  `PowerOutageManagementListener` deletes the log right after calling
+  `deleteRegistryMessages`, so a fully asynchronous row read would race the
+  cascade and silently skip the message deletions.

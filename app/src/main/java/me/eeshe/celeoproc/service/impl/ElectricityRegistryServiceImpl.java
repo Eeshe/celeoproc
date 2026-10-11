@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,7 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
     private final NicknameResolver nicknameResolver;
     private final PowerOutageLogService powerOutageLogService;
     private final JDA bot;
+    private final ExecutorService interactionExecutor;
 
     public ElectricityRegistryServiceImpl(
             final RegistryChannelService registryChannelService,
@@ -48,7 +50,8 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
             final MessageService messageService,
             final NicknameResolver nicknameResolver,
             final PowerOutageLogService powerOutageLogService,
-            final JDA bot) {
+            final JDA bot,
+            final ExecutorService interactionExecutor) {
         this.registryChannelService = Objects.requireNonNull(registryChannelService,
                 "RegistryChannelService must not be null");
         this.powerOutageRegistryMessageService = Objects.requireNonNull(powerOutageRegistryMessageService,
@@ -58,6 +61,8 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
         this.powerOutageLogService = Objects.requireNonNull(powerOutageLogService,
                 "PowerOutageLogService must not be null");
         this.bot = Objects.requireNonNull(bot, "JDA must not be null");
+        this.interactionExecutor = Objects.requireNonNull(interactionExecutor,
+                "ExecutorService must not be null");
     }
 
     @Override
@@ -83,14 +88,35 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
     public void editRegistryMessages(final PowerOutageLog log) {
         Objects.requireNonNull(log, "PowerOutageLog must not be null");
 
+        // Snapshot the rows on the calling thread so the caller can safely rely on
+        // them before the asynchronous edits run.
+        final List<PowerOutageRegistryMessage> registryMessages = powerOutageRegistryMessageService
+                .getByPowerOutageLogId(log.id());
+        interactionExecutor.execute(() -> {
+            try {
+                editRegistryMessages(log, registryMessages);
+            } catch (final RuntimeException exception) {
+                LOGGER.error("Failed to edit the registry messages of log '{}'", log.id(), exception);
+            }
+        });
+    }
+
+    /**
+     * Edits the snapshot of registry messages that announced the given log.
+     *
+     * @param log              updated log
+     * @param registryMessages snapshot of the messages to edit
+     */
+    private void editRegistryMessages(
+            final PowerOutageLog log,
+            final List<PowerOutageRegistryMessage> registryMessages) {
         final String formattedDuration = powerOutageLogService
                 .getPreviousCompletedPowerOutageLog(log.userId(), log.electricityOut())
                 .map(previous -> DurationFormatter.format(
                         Duration.between(previous.electricityIn(), log.electricityOut())))
                 .orElse(UNKNOWN_DURATION);
 
-        for (final PowerOutageRegistryMessage registryMessage : powerOutageRegistryMessageService
-                .getByPowerOutageLogId(log.id())) {
+        for (final PowerOutageRegistryMessage registryMessage : registryMessages) {
             final TextChannel channel = bot.getTextChannelById(registryMessage.channelId());
             if (channel == null) {
                 LOGGER.error("Failed to edit electricity registry messages: channel '{}' not found",
@@ -137,8 +163,26 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
     public void deleteRegistryMessages(final PowerOutageLog log) {
         Objects.requireNonNull(log, "PowerOutageLog must not be null");
 
-        for (final PowerOutageRegistryMessage registryMessage : powerOutageRegistryMessageService
-                .getByPowerOutageLogId(log.id())) {
+        // Snapshot the rows before the caller deletes the log, whose cascade removes
+        // them and would otherwise make the messages unresolvable.
+        final List<PowerOutageRegistryMessage> registryMessages = powerOutageRegistryMessageService
+                .getByPowerOutageLogId(log.id());
+        interactionExecutor.execute(() -> {
+            try {
+                deleteRegistryMessages(registryMessages);
+            } catch (final RuntimeException exception) {
+                LOGGER.error("Failed to delete the registry messages of log '{}'", log.id(), exception);
+            }
+        });
+    }
+
+    /**
+     * Deletes the snapshot of registry messages that announced the given log.
+     *
+     * @param registryMessages snapshot of the messages to delete
+     */
+    private void deleteRegistryMessages(final List<PowerOutageRegistryMessage> registryMessages) {
+        for (final PowerOutageRegistryMessage registryMessage : registryMessages) {
             final TextChannel channel = bot.getTextChannelById(registryMessage.channelId());
             if (channel == null) {
                 LOGGER.error("Failed to delete electricity registry messages: channel '{}' not found",

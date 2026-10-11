@@ -37,6 +37,11 @@ public interface ElectricityRegistryService {
      * channels and channels it was sent to, so they reflect the log's updated
      * data. Components of the edited messages are left intact.
      *
+     * <p>
+     * Asynchronous: the registry message rows are snapshotted before returning,
+     * while the channel and nickname resolution and the actual edits run on the
+     * interaction executor.
+     *
      * @param log updated log
      */
     void editRegistryMessages(PowerOutageLog log);
@@ -44,6 +49,11 @@ public interface ElectricityRegistryService {
     /**
      * Deletes every registry message that announced the given log, across all
      * channels it was sent to.
+     *
+     * <p>
+     * Asynchronous: the registry message rows are snapshotted before returning
+     * (they cascade away with the log), while the actual deletions run on the
+     * interaction executor.
      *
      * @param log log whose registry messages are deleted
      */
