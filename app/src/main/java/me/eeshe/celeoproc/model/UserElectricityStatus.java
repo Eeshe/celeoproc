@@ -3,7 +3,6 @@ package me.eeshe.celeoproc.model;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Objects;
 
 /**
  * Persisted electricity status of a Discord user.
@@ -89,15 +88,15 @@ public final class UserElectricityStatus {
     }
 
     /**
-     * @param zone timezone the current day is resolved in
+     * @param timezone timezone the current day is resolved in
      * @return {@code true} when the last electricity out happened in the current
      *         day
      */
-    public boolean hasElectricityOutToday(final ZoneId zone) {
+    public boolean hasElectricityOutToday(final ZoneId timezone) {
         if (electricityOut == null) {
             return false;
         }
-        return LocalDate.now(zone).equals(electricityOut.atZone(zone).toLocalDate());
+        return LocalDate.now(timezone).equals(electricityOut.atZone(timezone).toLocalDate());
     }
 
     @Override

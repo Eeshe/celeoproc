@@ -55,22 +55,39 @@ public final class PowerOutageLogServiceImpl implements PowerOutageLogService {
     }
 
     @Override
-    public PowerOutageLog logPowerOutage(
-            final long userId,
-            final Instant electricityOut,
-            final Instant electricityIn) {
-        Objects.requireNonNull(userId, "User ID must not be null");
+    public PowerOutageLog startPowerOutage(final long userId, final Instant electricityOut) {
         Objects.requireNonNull(electricityOut, "Electricity out must not be null");
-        Objects.requireNonNull(electricityIn, "Electricity in must not be null");
 
         final PowerOutageLog powerOutageLog = new PowerOutageLog(
                 UUID.randomUUID(),
                 userId,
                 electricityOut,
-                electricityIn);
+                null);
         powerOutageLogRepository.save(powerOutageLog);
 
         return powerOutageLog;
+    }
+
+    @Override
+    public Optional<PowerOutageLog> getIncompletePowerOutageLog(final long userId) {
+        return powerOutageLogRepository.getIncompletePowerOutageLog(userId);
+    }
+
+    @Override
+    public Optional<PowerOutageLog> getPreviousCompletedPowerOutageLog(
+            final long userId,
+            final Instant beforeInstant) {
+        Objects.requireNonNull(beforeInstant, "Before instant must not be null");
+
+        return powerOutageLogRepository.getPreviousCompletedPowerOutageLog(userId, beforeInstant);
+    }
+
+    @Override
+    public PowerOutageLog update(final PowerOutageLog log) {
+        Objects.requireNonNull(log, "PowerOutageLog must not be null");
+
+        powerOutageLogRepository.update(log);
+        return log;
     }
 
     @Override
@@ -100,13 +117,13 @@ public final class PowerOutageLogServiceImpl implements PowerOutageLogService {
         Objects.requireNonNull(electricityOut, "Electricity out must not be null");
         Objects.requireNonNull(electricityIn, "Electricity in must not be null");
 
-        final ZoneId zone = appSettings.getTimezone();
+        final ZoneId timezone = appSettings.getTimezone();
         final PowerOutageLog updatedLog = new PowerOutageLog(
                 log.id(),
                 log.userId(),
-                electricityOut.atZone(zone).toInstant(),
-                electricityIn.atZone(zone).toInstant());
-        powerOutageLogRepository.save(updatedLog);
+                electricityOut.atZone(timezone).toInstant(),
+                electricityIn.atZone(timezone).toInstant());
+        powerOutageLogRepository.update(updatedLog);
         return updatedLog;
     }
 
@@ -128,9 +145,9 @@ public final class PowerOutageLogServiceImpl implements PowerOutageLogService {
         Objects.requireNonNull(rangeStart, "Range start must not be null");
         Objects.requireNonNull(rangeEnd, "Range end must not be null");
 
-        final ZoneId zone = appSettings.getTimezone();
-        final Instant startInstant = rangeStart.atStartOfDay(zone).toInstant();
-        final Instant endInstant = rangeEnd.plusDays(1).atStartOfDay(zone).toInstant().minusNanos(1);
+        final ZoneId timezone = appSettings.getTimezone();
+        final Instant startInstant = rangeStart.atStartOfDay(timezone).toInstant();
+        final Instant endInstant = rangeEnd.plusDays(1).atStartOfDay(timezone).toInstant().minusNanos(1);
 
         final List<PowerOutageLog> globalLogs = powerOutageLogRepository.getWithinRange(startInstant, endInstant);
         final Set<Long> participantUserIds = collectParticipantUserIds(guildId);
