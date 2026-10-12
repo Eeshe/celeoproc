@@ -351,6 +351,11 @@ class PowerOutageLogServiceImplTest {
         }
 
         @Override
+        public boolean exceedsParticipantLimit(final long userId, final long messageId) {
+            return false;
+        }
+
+        @Override
         public void deleteElectricityStatusEmbed(final long messageId) {
         }
     }

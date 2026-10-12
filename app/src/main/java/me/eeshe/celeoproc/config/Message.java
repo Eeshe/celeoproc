@@ -30,6 +30,7 @@ public enum Message {
     ELECTRICITY_STATUS_EMBED_OUT_MODAL_PLACEHOLDER("electricity_status_embed_out_modal_placeholder",
             TextInput.MAX_PLACEHOLDER_LENGTH),
     ELECTRICITY_STATUS_INVALID_DURATION("electricity_status_invalid_duration"),
+    ELECTRICITY_STATUS_EMBED_PARTICIPANT_LIMIT_REACHED("electricity_status_embed_participant_limit_reached"),
 
     ELECTRICITY_REGISTRY_OUT("electricity_registry_out"),
     ELECTRICITY_REGISTRY_IN("electricity_registry_in"),

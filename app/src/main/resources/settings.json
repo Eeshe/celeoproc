@@ -7,5 +7,6 @@
     "stats-image-url": "",
     "default-electricity-out-estimate": "6h",
     "electricity-status-embed-update-frequency": "5m",
-    "electricity-reminder-frequency": "2h"
+    "electricity-reminder-frequency": "2h",
+    "electricity-status-embed-participant-limit": 20
 }

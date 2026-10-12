@@ -67,7 +67,13 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
     public void onButtonInteraction(final ButtonInteractionEvent event) {
         final String componentId = event.getComponentId();
         final long userId = event.getUser().getIdLong();
-
+        final long messageId = event.getMessageIdLong();
+        if (electricityStatusEmbedService.exceedsParticipantLimit(userId, messageId)) {
+            event.reply(messageService.get(Message.ELECTRICITY_STATUS_EMBED_PARTICIPANT_LIMIT_REACHED))
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
         if (ElectricityStatusEmbedService.ELECTRICITY_OUT_BUTTON_ID.equals(componentId)) {
             if (userElectricityStatusService.hasNoElectricity(userId)) {
                 event.reply(messageService.get(Message.ELECTRICITY_STATUS_ALREADY_NO_ELECTRICITY))
@@ -80,7 +86,6 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
         } else if (!ElectricityStatusEmbedService.ELECTRICITY_IN_BUTTON_ID.equals(componentId)) {
             return;
         }
-        final long messageId = event.getMessageIdLong();
         event.deferEdit().queue(hook -> interactionExecutor.execute(
                 () -> handleElectricityIn(hook, userId, messageId)));
     }

@@ -45,6 +45,16 @@ public interface ElectricityStatusEmbedRepository extends Repository {
     List<ElectricityStatusEmbed> getStaleEmbeds(Instant updatedAtOrBefore);
 
     /**
+     * @param messageId        id of the Discord message the embed belongs to
+     * @param userId           id of a participating Discord user
+     * @param participantLimit maximum amount of participants the embed admits
+     * @return {@code true} when the stored embed has at least
+     *         {@code participantLimit} participants and {@code userId} is not
+     *         among them, or {@code false} when no row exists
+     */
+    boolean exceedsParticipantLimit(long messageId, long userId, int participantLimit);
+
+    /**
      * Deletes the stored embed for the given message id, if present.
      *
      * @param messageId id of the Discord message the embed belongs to

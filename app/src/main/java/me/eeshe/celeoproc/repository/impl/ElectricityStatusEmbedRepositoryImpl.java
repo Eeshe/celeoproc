@@ -93,6 +93,16 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
             TABLE,
             COLUMN_UPDATED_AT);
 
+    private static final String EXCEEDS_PARTICIPANT_LIMIT_SQL = """
+            SELECT (CARDINALITY(%s) >= ? AND NOT (? = ANY(%s))) AS exceeds
+            FROM %s
+            WHERE %s = ?
+            LIMIT 1""".formatted(
+            COLUMN_PARTICIPANT_USER_IDS,
+            COLUMN_PARTICIPANT_USER_IDS,
+            TABLE,
+            COLUMN_MESSAGE_ID);
+
     private static final String CREATE_UPDATED_AT_INDEX_SQL = "CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s)"
             .formatted(TABLE, COLUMN_UPDATED_AT, TABLE, COLUMN_UPDATED_AT);
 
@@ -234,6 +244,26 @@ public final class ElectricityStatusEmbedRepositoryImpl implements ElectricitySt
             return List.of();
         }
         return statusEmbeds;
+    }
+
+    @Override
+    public boolean exceedsParticipantLimit(final long messageId, final long userId, final int participantLimit) {
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(EXCEEDS_PARTICIPANT_LIMIT_SQL)) {
+            statement.setInt(1, participantLimit);
+            statement.setLong(2, userId);
+            statement.setLong(3, messageId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return false;
+                }
+                return resultSet.getBoolean("exceeds");
+            }
+        } catch (final SQLException exception) {
+            LOGGER.error("Failed to check participant limit for message '{}'", messageId, exception);
+            return false;
+        }
     }
 
     @Override

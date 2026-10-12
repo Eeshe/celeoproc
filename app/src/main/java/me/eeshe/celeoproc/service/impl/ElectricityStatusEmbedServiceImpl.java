@@ -86,6 +86,12 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     }
 
     @Override
+    public boolean exceedsParticipantLimit(final long userId, final long messageId) {
+        return electricityStatusEmbedRepository.exceedsParticipantLimit(
+                messageId, userId, appSettings.getElectricityStatusEmbedParticipantLimit());
+    }
+
+    @Override
     public boolean updateElectricityStatusEmbed(final ElectricityStatusEmbed statusEmbed) {
         Objects.requireNonNull(statusEmbed, "ElectricityStatusEmbed must not be null");
 

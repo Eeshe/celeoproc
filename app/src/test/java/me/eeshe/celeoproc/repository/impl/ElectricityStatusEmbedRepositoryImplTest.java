@@ -1,6 +1,7 @@
 package me.eeshe.celeoproc.repository.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -91,6 +92,32 @@ class ElectricityStatusEmbedRepositoryImplTest {
         final ElectricityStatusEmbed stored = repository.get(10L).orElseThrow();
         assertEquals(List.of(1L, 2L), stored.getParticipantUserIds());
         assertEquals(Set.of(10L), messageIds(repository.getByGuildId(GUILD_A)));
+    }
+
+    @Test
+    void exceedsParticipantLimitReturnsFalseWhenBelowLimit() {
+        repository.save(embed(10L, GUILD_A, List.of(1L)));
+
+        assertFalse(repository.exceedsParticipantLimit(10L, 2L, 2));
+    }
+
+    @Test
+    void exceedsParticipantLimitReturnsTrueWhenAtLimitForNonParticipant() {
+        repository.save(embed(10L, GUILD_A, List.of(1L, 2L)));
+
+        assertTrue(repository.exceedsParticipantLimit(10L, 3L, 2));
+    }
+
+    @Test
+    void exceedsParticipantLimitReturnsFalseForExistingParticipant() {
+        repository.save(embed(10L, GUILD_A, List.of(1L, 2L)));
+
+        assertFalse(repository.exceedsParticipantLimit(10L, 1L, 2));
+    }
+
+    @Test
+    void exceedsParticipantLimitReturnsFalseWhenEmbedDoesNotExist() {
+        assertFalse(repository.exceedsParticipantLimit(999L, 1L, 2));
     }
 
     private static Set<Long> messageIds(final List<ElectricityStatusEmbed> embeds) {

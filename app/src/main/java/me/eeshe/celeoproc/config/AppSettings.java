@@ -15,6 +15,7 @@ public final class AppSettings extends JsonConfigLoader {
     private static final Duration DEFAULT_ELECTRICITY_OUT_ESTIMATE = Duration.ofHours(6);
     private static final Duration DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY = Duration.ofMinutes(5);
     private static final Duration DEFAULT_ELECTRICITY_REMINDER_FREQUENCY = Duration.ofHours(2);
+    private static final int DEFAULT_ELECTRICITY_STATUS_EMBED_PARTICIPANT_LIMIT = 20;
 
     private List<Long> guildIds = List.of();
     private ZoneId timezone = ZoneId.systemDefault();
@@ -22,6 +23,7 @@ public final class AppSettings extends JsonConfigLoader {
     private Duration defaultElectricityOutEstimate = DEFAULT_ELECTRICITY_OUT_ESTIMATE;
     private Duration electricityStatusEmbedUpdateFrequency = DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY;
     private Duration electricityReminderFrequency = DEFAULT_ELECTRICITY_REMINDER_FREQUENCY;
+    private int electricityStatusEmbedParticipantLimit = DEFAULT_ELECTRICITY_STATUS_EMBED_PARTICIPANT_LIMIT;
 
     public AppSettings() {
         super("settings", "config", "settings.json", "/settings.json", "SETTINGS_PATH");
@@ -35,6 +37,7 @@ public final class AppSettings extends JsonConfigLoader {
         this.defaultElectricityOutEstimate = loadDefaultElectricityOutEstimate(root);
         this.electricityStatusEmbedUpdateFrequency = loadElectricityStatusEmbedUpdateFrequency(root);
         this.electricityReminderFrequency = loadElectricityReminderFrequency(root);
+        this.electricityStatusEmbedParticipantLimit = loadElectricityStatusEmbedParticipantLimit(root);
     }
 
     public List<Long> getGuildIds() {
@@ -59,6 +62,10 @@ public final class AppSettings extends JsonConfigLoader {
 
     public Duration getElectricityReminderFrequency() {
         return electricityReminderFrequency;
+    }
+
+    public int getElectricityStatusEmbedParticipantLimit() {
+        return electricityStatusEmbedParticipantLimit;
     }
 
     private List<Long> loadGuildIds(final JsonNode root) {
@@ -117,6 +124,22 @@ public final class AppSettings extends JsonConfigLoader {
 
     private Duration loadElectricityReminderFrequency(final JsonNode root) {
         return loadDuration(root, "electricity-reminder-frequency", DEFAULT_ELECTRICITY_REMINDER_FREQUENCY, true);
+    }
+
+    private int loadElectricityStatusEmbedParticipantLimit(final JsonNode root) {
+        final String path = "electricity-status-embed-participant-limit";
+        final JsonNode node = root.path(path);
+        if (node.isMissingNode() || node.isNull() || node.asText().isBlank()) {
+            return DEFAULT_ELECTRICITY_STATUS_EMBED_PARTICIPANT_LIMIT;
+        }
+        if (!node.isIntegralNumber()) {
+            throw new IllegalStateException("Setting '%s' must be an integer".formatted(path));
+        }
+        final int value = node.asInt();
+        if (value <= 0) {
+            throw new IllegalStateException("Setting '%s' must be greater than zero".formatted(path));
+        }
+        return value;
     }
 
     private Duration loadDuration(final JsonNode root, final String path, final Duration defaultValue) {

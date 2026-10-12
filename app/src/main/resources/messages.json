@@ -12,6 +12,7 @@
   "electricity_status_embed_out_modal_label": "How many hours of suffering do you expect?",
   "electricity_status_embed_out_modal_placeholder": "6h",
   "electricity_status_invalid_duration": "'{input}' is not a valid duration. Use the format 6h30m.",
+  "electricity_status_embed_participant_limit_reached": "This embed doesn't admit any more participants. Ask a server admin to create another one",
   "electricity_registry_out": "{nickname} no longer has electricity. It lasted **{time_since_last_power_outage_relative}**",
   "electricity_registry_in": "{nickname} has electricity back. The power outage went from {electricity_out_time} to {electricity_in_time} **({power_outage_time_relative})**.",
   "electricity_registry_embed_not_found": "No electricity status embed found with ID '{embed_id}'.",

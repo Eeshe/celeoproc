@@ -43,6 +43,14 @@ public interface ElectricityStatusEmbedService {
     List<ElectricityStatusEmbed> getByGuildId(long guildId);
 
     /**
+     * @param userId    id of a participating Discord user
+     * @param messageId id of the Discord message the embed belongs to
+     * @return {@code true} when the embed has reached the configured participant
+     *         limit and the user is not already a participant
+     */
+    boolean exceedsParticipantLimit(long userId, long messageId);
+
+    /**
      * Rebuilds the embed from its registered participants and edits the
      * already-posted Discord message.
      *
