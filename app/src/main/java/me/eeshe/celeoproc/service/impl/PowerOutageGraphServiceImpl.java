@@ -2,6 +2,7 @@ package me.eeshe.celeoproc.service.impl;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
@@ -9,6 +10,7 @@ import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.DecimalFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -24,13 +26,17 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.AxisState;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.axis.TickType;
 import org.jfree.chart.axis.ValueAxis;
+import org.jfree.chart.axis.ValueTick;
 import org.jfree.chart.block.BlockBorder;
 import org.jfree.chart.plot.CrosshairState;
 import org.jfree.chart.plot.PlotOrientation;
@@ -39,8 +45,10 @@ import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.AbstractXYItemRenderer;
 import org.jfree.chart.renderer.xy.XYItemRendererState;
+import org.jfree.chart.text.TextUtils;
 import org.jfree.chart.ui.Layer;
 import org.jfree.chart.ui.RectangleEdge;
+import org.jfree.chart.ui.TextAnchor;
 import org.jfree.data.xy.AbstractXYDataset;
 import org.jfree.data.xy.XYDataset;
 import org.slf4j.Logger;
@@ -355,13 +363,39 @@ public final class PowerOutageGraphServiceImpl implements PowerOutageGraphServic
      * @return the configured domain axis
      */
     private NumberAxis createDomainAxis(final YearMonth month) {
-        final NumberAxis domainAxis = new NumberAxis(messageService.get(Message.POWER_OUTAGE_GRAPH_DAY_AXIS));
+        final NumberAxis domainAxis = new WeekdayNumberAxis(
+                messageService.get(Message.POWER_OUTAGE_GRAPH_DAY_AXIS), month, this::weekdayAbbreviation);
         domainAxis.setRange(0.5, month.lengthOfMonth() + 0.5);
         domainAxis.setTickUnit(new NumberTickUnit(1));
         domainAxis.setNumberFormatOverride(new DecimalFormat("0"));
         domainAxis.setAutoRangeIncludesZero(false);
         styleAxis(domainAxis);
         return domainAxis;
+    }
+
+    /**
+     * @param month month the day belongs to
+     * @param day   day of the month
+     * @return the abbreviated weekday name loaded from {@code messages.json}
+     */
+    public String weekdayAbbreviation(final YearMonth month, final int day) {
+        return weekdayAbbreviation(month.atDay(day).getDayOfWeek());
+    }
+
+    /**
+     * @param dayOfWeek day of the week to abbreviate
+     * @return the abbreviated weekday name loaded from {@code messages.json}
+     */
+    private String weekdayAbbreviation(final DayOfWeek dayOfWeek) {
+        return switch (dayOfWeek) {
+            case MONDAY -> messageService.get(Message.POWER_OUTAGE_GRAPH_WEEKDAY_MONDAY);
+            case TUESDAY -> messageService.get(Message.POWER_OUTAGE_GRAPH_WEEKDAY_TUESDAY);
+            case WEDNESDAY -> messageService.get(Message.POWER_OUTAGE_GRAPH_WEEKDAY_WEDNESDAY);
+            case THURSDAY -> messageService.get(Message.POWER_OUTAGE_GRAPH_WEEKDAY_THURSDAY);
+            case FRIDAY -> messageService.get(Message.POWER_OUTAGE_GRAPH_WEEKDAY_FRIDAY);
+            case SATURDAY -> messageService.get(Message.POWER_OUTAGE_GRAPH_WEEKDAY_SATURDAY);
+            case SUNDAY -> messageService.get(Message.POWER_OUTAGE_GRAPH_WEEKDAY_SUNDAY);
+        };
     }
 
     /**
@@ -546,6 +580,82 @@ public final class PowerOutageGraphServiceImpl implements PowerOutageGraphServic
         @Override
         public Number getY(final int series, final int item) {
             return seriesSegments.get(series).get(item).startHour();
+        }
+    }
+
+    /**
+     * Number axis whose day ticks span two rows: the day of the month on the
+     * first row (drawn by the standard axis) and the abbreviated weekday name
+     * on a second row drawn underneath. The extra row is reported through
+     * {@link #findMaximumTickLabelHeight} so the plot reserves room for it.
+     */
+    private static final class WeekdayNumberAxis extends NumberAxis {
+
+        private static final long serialVersionUID = 1L;
+        private static final double ROW_GAP = 2.0;
+
+        private final YearMonth month;
+        private final Function<DayOfWeek, String> weekdayNames;
+
+        private WeekdayNumberAxis(
+                final String label,
+                final YearMonth month,
+                final Function<DayOfWeek, String> weekdayNames) {
+            super(label);
+            this.month = month;
+            this.weekdayNames = weekdayNames;
+        }
+
+        @Override
+        @SuppressWarnings("rawtypes")
+        protected double findMaximumTickLabelHeight(
+                final List ticks,
+                final Graphics2D g2,
+                final Rectangle2D drawArea,
+                final boolean vertical) {
+            final double height = super.findMaximumTickLabelHeight(ticks, g2, drawArea, vertical);
+            return vertical ? height : height + weekdayRowHeight(g2) + ROW_GAP;
+        }
+
+        @Override
+        protected AxisState drawTickMarksAndLabels(
+                final Graphics2D g2,
+                final double cursor,
+                final Rectangle2D plotArea,
+                final Rectangle2D dataArea,
+                final RectangleEdge edge) {
+            final AxisState state = super.drawTickMarksAndLabels(g2, cursor, plotArea, dataArea, edge);
+            if (!isTickLabelsVisible() || edge != RectangleEdge.BOTTOM) {
+                return state;
+            }
+
+            g2.setFont(getTickLabelFont());
+            g2.setPaint(getTickLabelPaint());
+            final float rowTop = (float) (cursor + getTickLabelInsets().getTop() + ROW_GAP
+                    + weekdayRowHeight(g2));
+            for (final Object item : state.getTicks()) {
+                final ValueTick tick = (ValueTick) item;
+                if (tick.getTickType() != TickType.MAJOR) {
+                    continue;
+                }
+                final int day = (int) Math.round(tick.getValue());
+                if (day < 1 || day > month.lengthOfMonth()) {
+                    continue;
+                }
+                final float x = (float) valueToJava2D(tick.getValue(), dataArea, edge);
+                TextUtils.drawRotatedString(weekdayNames.apply(month.atDay(day).getDayOfWeek()),
+                        g2, x, rowTop, TextAnchor.TOP_CENTER, 0.0, TextAnchor.TOP_CENTER);
+            }
+            return state;
+        }
+
+        /**
+         * @param g2 graphics device providing the tick label font metrics
+         * @return the height of a single weekday text row
+         */
+        private float weekdayRowHeight(final Graphics2D g2) {
+            final FontMetrics metrics = g2.getFontMetrics(getTickLabelFont());
+            return metrics.getHeight();
         }
     }
 

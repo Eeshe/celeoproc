@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
@@ -109,6 +110,14 @@ class PowerOutageGraphServiceImplTest {
     @Test
     void deleteGraphsWithEmptyListIsNoOp() {
         service.deleteGraphs(List.of());
+    }
+
+    @Test
+    void weekdayAbbreviationResolvesCalendarDayToName() {
+        // May 1 2025 is a Thursday, so May 3 is a Saturday and May 6 a Tuesday.
+        assertEquals("Sat", service.weekdayAbbreviation(YearMonth.of(2025, 5), 3));
+        assertEquals("Tue", service.weekdayAbbreviation(YearMonth.of(2025, 5), 6));
+        assertEquals("Sat", service.weekdayAbbreviation(YearMonth.of(2025, 5), 31));
     }
 
     private static void assertAllExistAndNonEmpty(final List<Path> graphs) throws IOException {

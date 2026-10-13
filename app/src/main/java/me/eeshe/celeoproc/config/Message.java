@@ -112,6 +112,13 @@ public enum Message {
     POWER_OUTAGE_GRAPH_COMBINED_TITLE("power_outage_graph_combined_title"),
     POWER_OUTAGE_GRAPH_DAY_AXIS("power_outage_graph_day_axis"),
     POWER_OUTAGE_GRAPH_HOUR_AXIS("power_outage_graph_hour_axis"),
+    POWER_OUTAGE_GRAPH_WEEKDAY_MONDAY("power_outage_graph_weekday_monday"),
+    POWER_OUTAGE_GRAPH_WEEKDAY_TUESDAY("power_outage_graph_weekday_tuesday"),
+    POWER_OUTAGE_GRAPH_WEEKDAY_WEDNESDAY("power_outage_graph_weekday_wednesday"),
+    POWER_OUTAGE_GRAPH_WEEKDAY_THURSDAY("power_outage_graph_weekday_thursday"),
+    POWER_OUTAGE_GRAPH_WEEKDAY_FRIDAY("power_outage_graph_weekday_friday"),
+    POWER_OUTAGE_GRAPH_WEEKDAY_SATURDAY("power_outage_graph_weekday_saturday"),
+    POWER_OUTAGE_GRAPH_WEEKDAY_SUNDAY("power_outage_graph_weekday_sunday"),
 
     POWER_OUTAGE_LOG_NOT_FOUND("power_outage_log_not_found"),
     POWER_OUTAGE_EDIT_BUTTON("power_outage_edit_button", Button.LABEL_MAX_LENGTH),
