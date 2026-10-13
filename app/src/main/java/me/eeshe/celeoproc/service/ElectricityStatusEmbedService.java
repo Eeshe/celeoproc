@@ -12,6 +12,8 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 public interface ElectricityStatusEmbedService {
     String ELECTRICITY_OUT_BUTTON_ID = "electricity_status_embed_button_out";
     String ELECTRICITY_IN_BUTTON_ID = "electricity_status_embed_button_in";
+    String REMOVE_PARTICIPANT_BUTTON_ID = "electricity_status_embed_remove_participant_button";
+    String OPT_OUT_BUTTON_ID = "electricity_status_embed_opt_out_button";
     String ELECTRICITY_OUT_MODAL_ID = "electricity_status_embed_out_modal";
     String ELECTRICITY_IN_ESTIMATE_INPUT_ID = "electricity_status_embed_out_modal_input";
 
@@ -58,6 +60,18 @@ public interface ElectricityStatusEmbedService {
      * @return {@code true} when the edit was dispatched
      */
     boolean updateElectricityStatusEmbed(ElectricityStatusEmbed statusEmbed);
+
+    /**
+     * Removes the given user from the stored embed's participant list and
+     * refreshes the already-posted Discord message.
+     *
+     * @param messageId id of the Discord message the embed belongs to
+     * @param userId    id of the participating Discord user to remove
+     * @return {@code true} when the user was a participant and the embed was
+     *         updated, or {@code false} when no stored embed exists for the
+     *         message or the user was not a participant
+     */
+    boolean deleteParticipant(long messageId, long userId);
 
     /**
      * Deletes the stored electricity status embed associated with the given

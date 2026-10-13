@@ -356,6 +356,11 @@ class PowerOutageLogServiceImplTest {
         }
 
         @Override
+        public boolean deleteParticipant(final long messageId, final long userId) {
+            return false;
+        }
+
+        @Override
         public void deleteElectricityStatusEmbed(final long messageId) {
         }
     }

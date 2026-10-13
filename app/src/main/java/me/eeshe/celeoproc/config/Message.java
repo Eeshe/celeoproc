@@ -24,6 +24,9 @@ public enum Message {
 
     ELECTRICITY_STATUS_EMBED_BUTTON_OUT("electricity_status_embed_button_out", Button.LABEL_MAX_LENGTH),
     ELECTRICITY_STATUS_EMBED_BUTTON_IN("electricity_status_embed_button_in", Button.LABEL_MAX_LENGTH),
+    ELECTRICITY_STATUS_EMBED_BUTTON_REMOVE_PARTICIPANT("electricity_status_embed_button_remove_participant",
+            Button.LABEL_MAX_LENGTH),
+    ELECTRICITY_STATUS_EMBED_BUTTON_OPT_OUT("electricity_status_embed_button_opt_out", Button.LABEL_MAX_LENGTH),
     ELECTRICITY_STATUS_ALREADY_HAS_ELECTRICITY("electricity_status_already_has_electricity"),
     ELECTRICITY_STATUS_ALREADY_NO_ELECTRICITY("electricity_status_already_no_electricity"),
     ELECTRICITY_STATUS_EMBED_OUT_MODAL_TITLE("electricity_status_embed_out_modal_title", Modal.MAX_TITLE_LENGTH),
@@ -32,6 +35,12 @@ public enum Message {
             TextInput.MAX_PLACEHOLDER_LENGTH),
     ELECTRICITY_STATUS_INVALID_DURATION("electricity_status_invalid_duration"),
     ELECTRICITY_STATUS_EMBED_PARTICIPANT_LIMIT_REACHED("electricity_status_embed_participant_limit_reached"),
+    ELECTRICITY_STATUS_EMBED_NOT_PARTICIPANT("electricity_status_embed_not_participant"),
+    ELECTRICITY_STATUS_EMBED_USER_NOT_PARTICIPANT("electricity_status_embed_user_not_participant"),
+    ELECTRICITY_STATUS_EMBED_REMOVE_PARTICIPANT_MODAL_TITLE("electricity_status_embed_remove_participant_modal_title",
+            Modal.MAX_TITLE_LENGTH),
+    ELECTRICITY_STATUS_EMBED_REMOVE_PARTICIPANT_MODAL_LABEL("electricity_status_embed_remove_participant_modal_label",
+            Label.LABEL_MAX_LENGTH),
 
     ELECTRICITY_REGISTRY_OUT("electricity_registry_out"),
     ELECTRICITY_REGISTRY_IN("electricity_registry_in"),

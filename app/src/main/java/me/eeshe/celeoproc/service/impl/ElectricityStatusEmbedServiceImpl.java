@@ -116,6 +116,20 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
     }
 
     @Override
+    public boolean deleteParticipant(final long messageId, final long userId) {
+        final Optional<ElectricityStatusEmbed> existing = electricityStatusEmbedRepository.get(messageId);
+        if (existing.isEmpty()) {
+            return false;
+        }
+        final ElectricityStatusEmbed statusEmbed = existing.get();
+        if (!statusEmbed.getParticipantUserIds().contains(userId)) {
+            return false;
+        }
+        statusEmbed.removeParticipant(userId);
+        return updateElectricityStatusEmbed(statusEmbed);
+    }
+
+    @Override
     public void deleteElectricityStatusEmbed(final long messageId) {
         electricityStatusEmbedRepository.delete(messageId);
     }
@@ -195,14 +209,22 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
                 "estimate_relative", TimestampFormatter.formatRelative(status.getElectricityInEstimate())));
     }
 
-    private ActionRow buildButtons() {
-        return ActionRow.of(
-                Button.danger(
-                        ELECTRICITY_OUT_BUTTON_ID,
-                        messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_OUT)),
-                Button.success(
-                        ELECTRICITY_IN_BUTTON_ID,
-                        messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_IN)));
+    private List<ActionRow> buildButtons() {
+        return List.of(
+                ActionRow.of(
+                        Button.danger(
+                                ELECTRICITY_OUT_BUTTON_ID,
+                                messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_OUT)),
+                        Button.success(
+                                ELECTRICITY_IN_BUTTON_ID,
+                                messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_IN))),
+                ActionRow.of(
+                        Button.danger(
+                                REMOVE_PARTICIPANT_BUTTON_ID,
+                                messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_REMOVE_PARTICIPANT)),
+                        Button.primary(
+                                OPT_OUT_BUTTON_ID,
+                                messageService.get(Message.ELECTRICITY_STATUS_EMBED_BUTTON_OPT_OUT))));
     }
 
     private String formatRelativeTime(final Instant from) {

@@ -15,20 +15,27 @@ import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.RegistryChannelService;
 import me.eeshe.celeoproc.service.UserElectricityStatusService;
+import me.eeshe.celeoproc.util.BotPermissions;
 import me.eeshe.celeoproc.util.DurationParser;
 import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu;
 import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.modals.Modal;
 
 public final class ElectricityStatusEmbedListener extends ListenerAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(ElectricityStatusEmbedListener.class);
+
+    public static final String REMOVE_PARTICIPANT_MODAL_ID_PREFIX = "electricity_status_embed_remove_participant_modal";
+    public static final String REMOVE_PARTICIPANT_USER_SELECT_ID = "electricity_status_embed_remove_participant_user_select";
 
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
     private final UserElectricityStatusService userElectricityStatusService;
@@ -68,6 +75,15 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
         final String componentId = event.getComponentId();
         final long userId = event.getUser().getIdLong();
         final long messageId = event.getMessageIdLong();
+        if (ElectricityStatusEmbedService.OPT_OUT_BUTTON_ID.equals(componentId)) {
+            event.deferEdit().queue(hook -> interactionExecutor.execute(
+                    () -> handleOptOut(hook, userId, messageId)));
+            return;
+        }
+        if (ElectricityStatusEmbedService.REMOVE_PARTICIPANT_BUTTON_ID.equals(componentId)) {
+            handleRemoveParticipantButton(event);
+            return;
+        }
         if (electricityStatusEmbedService.exceedsParticipantLimit(userId, messageId)) {
             event.reply(messageService.get(Message.ELECTRICITY_STATUS_EMBED_PARTICIPANT_LIMIT_REACHED))
                     .setEphemeral(true)
@@ -110,8 +126,60 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
         }
     }
 
+    /**
+     * Removes the user from the embed's participants, reporting failures through
+     * the deferred interaction's hook. Runs on the interaction executor so the
+     * deferred acknowledgment is sent before the repository call.
+     *
+     * @param hook      hook of the deferred interaction
+     * @param userId    id of the user that pressed the button
+     * @param messageId id of the embed message the button belongs to
+     */
+    private void handleOptOut(final InteractionHook hook, final long userId, final long messageId) {
+        try {
+            if (!electricityStatusEmbedService.deleteParticipant(messageId, userId)) {
+                replyEphemeral(hook, messageService.get(Message.ELECTRICITY_STATUS_EMBED_NOT_PARTICIPANT));
+            }
+        } catch (final RuntimeException exception) {
+            LOGGER.error("Failed to handle the opt out interaction of user '{}'", userId, exception);
+            replyEphemeral(hook, messageService.get(Message.GENERIC_ERROR));
+        }
+    }
+
+    /**
+     * Opens the remove-participant modal for the embed the button belongs to.
+     * Requires the interacting member to hold the manage-server permission.
+     *
+     * @param event button interaction to respond to
+     */
+    private void handleRemoveParticipantButton(final ButtonInteractionEvent event) {
+        if (!ensurePermission(event.getMember(), event)) {
+            return;
+        }
+        event.replyModal(buildRemoveParticipantModal(event.getMessageIdLong())).queue();
+    }
+
+    private Modal buildRemoveParticipantModal(final long messageId) {
+        final EntitySelectMenu userSelect = EntitySelectMenu
+                .create(REMOVE_PARTICIPANT_USER_SELECT_ID, EntitySelectMenu.SelectTarget.USER)
+                .setRequiredRange(1, 1)
+                .build();
+        return Modal
+                .create(REMOVE_PARTICIPANT_MODAL_ID_PREFIX + ":" + messageId,
+                        messageService.get(Message.ELECTRICITY_STATUS_EMBED_REMOVE_PARTICIPANT_MODAL_TITLE))
+                .addComponents(Label.of(
+                        messageService.get(Message.ELECTRICITY_STATUS_EMBED_REMOVE_PARTICIPANT_MODAL_LABEL),
+                        userSelect))
+                .build();
+    }
+
     @Override
     public void onModalInteraction(final ModalInteractionEvent event) {
+        final Long removeMessageId = parseEmbedId(event.getModalId(), REMOVE_PARTICIPANT_MODAL_ID_PREFIX);
+        if (removeMessageId != null) {
+            handleRemoveParticipantModal(event, removeMessageId);
+            return;
+        }
         if (!ElectricityStatusEmbedService.ELECTRICITY_OUT_MODAL_ID.equals(event.getModalId())) {
             return;
         }
@@ -123,6 +191,52 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
 
         event.deferEdit().queue(hook -> interactionExecutor.execute(
                 () -> handleElectricityOut(hook, userId, embedMessageId, rawInput)));
+    }
+
+    /**
+     * Handles the remove-participant modal, removing the selected user from the
+     * embed encoded in the modal id. Re-checks the permission before deferring,
+     * then offloads the repository work to the interaction executor.
+     *
+     * @param event           modal interaction to respond to
+     * @param embedMessageId  id of the embed message the modal belongs to
+     */
+    private void handleRemoveParticipantModal(final ModalInteractionEvent event, final long embedMessageId) {
+        if (!ensurePermission(event.getMember(), event)) {
+            return;
+        }
+        final ModalMapping mapping = event.getValue(REMOVE_PARTICIPANT_USER_SELECT_ID);
+        if (mapping == null || mapping.getAsLongList().isEmpty()) {
+            event.reply(messageService.get(Message.GENERIC_ERROR)).setEphemeral(true).queue();
+            return;
+        }
+        final long targetUserId = mapping.getAsLongList().get(0);
+        event.deferEdit().queue(hook -> interactionExecutor.execute(
+                () -> handleRemoveParticipant(hook, embedMessageId, targetUserId)));
+    }
+
+    /**
+     * Removes the selected user from the embed, reporting failures through the
+     * deferred interaction's hook. Runs on the interaction executor so the
+     * deferred acknowledgment is sent before the repository call.
+     *
+     * @param hook         hook of the deferred interaction
+     * @param messageId    id of the embed message the modal belongs to
+     * @param targetUserId id of the user to remove from the embed
+     */
+    private void handleRemoveParticipant(
+            final InteractionHook hook,
+            final long messageId,
+            final long targetUserId) {
+        try {
+            if (!electricityStatusEmbedService.deleteParticipant(messageId, targetUserId)) {
+                replyEphemeral(hook, messageService.get(Message.ELECTRICITY_STATUS_EMBED_USER_NOT_PARTICIPANT,
+                        Map.of("user", "<@" + targetUserId + ">")));
+            }
+        } catch (final RuntimeException exception) {
+            LOGGER.error("Failed to remove user '{}' from embed '{}'", targetUserId, messageId, exception);
+            replyEphemeral(hook, messageService.get(Message.GENERIC_ERROR));
+        }
     }
 
     /**
@@ -180,20 +294,6 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
         }
     }
 
-    /**
-     * Sends an ephemeral follow-up on a deferred interaction, logging failures
-     * instead of propagating them on the interaction executor.
-     *
-     * @param hook    hook of the deferred interaction
-     * @param message message to send
-     */
-    private void replyEphemeral(final InteractionHook hook, final String message) {
-        hook.sendMessage(message).setEphemeral(true).queue(
-                ignored -> {
-                },
-                throwable -> LOGGER.error("Failed to send an interaction error follow-up", throwable));
-    }
-
     private Modal buildElectricityOutModal() {
         final TextInput input = TextInput
                 .create(ElectricityStatusEmbedService.ELECTRICITY_IN_ESTIMATE_INPUT_ID, TextInputStyle.SHORT)
@@ -208,5 +308,56 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
                         messageService.get(Message.ELECTRICITY_STATUS_EMBED_OUT_MODAL_LABEL),
                         input))
                 .build();
+    }
+
+    /**
+     * Extracts the embed message id encoded in a custom id shaped
+     * {@code prefix:messageId}.
+     *
+     * @param customId custom id to parse
+     * @param prefix   expected prefix
+     * @return the encoded id, or {@code null} when the custom id does not match
+     */
+    private Long parseEmbedId(final String customId, final String prefix) {
+        final String fullPrefix = prefix + ":";
+        if (customId == null || !customId.startsWith(fullPrefix)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(customId.substring(fullPrefix.length()));
+        } catch (final NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Verifies the interacting member holds the permission required to manage the
+     * electricity status embeds, replying ephemerally with
+     * {@link Message#NO_PERMISSION} when they do not.
+     *
+     * @param member member that triggered the interaction, may be {@code null}
+     * @param event  callback used to answer the interaction
+     * @return whether the member is allowed to proceed
+     */
+    private boolean ensurePermission(final Member member, final IReplyCallback event) {
+        if (BotPermissions.isAllowed(member)) {
+            return true;
+        }
+        event.reply(messageService.get(Message.NO_PERMISSION)).setEphemeral(true).queue();
+        return false;
+    }
+
+    /**
+     * Sends an ephemeral follow-up on a deferred interaction, logging failures
+     * instead of propagating them on the interaction executor.
+     *
+     * @param hook    hook of the deferred interaction
+     * @param message message to send
+     */
+    private void replyEphemeral(final InteractionHook hook, final String message) {
+        hook.sendMessage(message).setEphemeral(true).queue(
+                ignored -> {
+                },
+                throwable -> LOGGER.error("Failed to send an interaction error follow-up", throwable));
     }
 }
