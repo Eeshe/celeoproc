@@ -157,7 +157,8 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
                 .collect(Collectors.joining("\n\n"));
 
         final EmbedBuilder builder = new EmbedBuilder()
-                .setTitle(messageService.get(Message.ELECTRICITY_STATUS_EMBED_TITLE));
+                .setTitle(messageService.get(Message.ELECTRICITY_STATUS_EMBED_TITLE))
+                .setColor(0xDE2520);
         final String thumbnailUrl = appSettings.getEmbedThumbnailUrl();
         if (thumbnailUrl != null && !thumbnailUrl.isBlank()) {
             builder.setThumbnail(thumbnailUrl);

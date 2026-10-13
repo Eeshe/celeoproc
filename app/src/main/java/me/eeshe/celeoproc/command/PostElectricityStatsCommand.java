@@ -175,6 +175,7 @@ public final class PostElectricityStatsCommand implements BotCommand {
             final LocalDate endDate) {
         final EmbedBuilder builder = new EmbedBuilder()
                 .setTitle(messageService.get(titleMessage))
+                .setColor(0xDE2520)
                 .setDescription(description)
                 .setFooter("%s -> %s".formatted(startDate.format(DATE_FORMATTER), endDate.format(DATE_FORMATTER)));
 
