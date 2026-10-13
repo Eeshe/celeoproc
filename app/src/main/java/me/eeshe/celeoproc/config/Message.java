@@ -20,6 +20,7 @@ public enum Message {
     GENERIC_ERROR("generic_error"),
     MISSING_ARGUMENT("missing_argument"),
     GUILD_ONLY("guild_only"),
+    NO_PERMISSION("no_permission"),
 
     ELECTRICITY_STATUS_EMBED_BUTTON_OUT("electricity_status_embed_button_out", Button.LABEL_MAX_LENGTH),
     ELECTRICITY_STATUS_EMBED_BUTTON_IN("electricity_status_embed_button_in", Button.LABEL_MAX_LENGTH),

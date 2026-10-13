@@ -7,7 +7,6 @@ import me.eeshe.celeoproc.config.Message;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.RegistryChannelService;
-import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -44,12 +43,6 @@ public final class UnsetElectricityRegistryCommand implements BotCommand {
 
     @Override
     public void run(final SlashCommandInteractionEvent event) {
-        if (event.getChannelType() != ChannelType.TEXT) {
-            event.reply(messageService.get(Message.GUILD_ONLY))
-                    .setEphemeral(true)
-                    .queue();
-            return;
-        }
         final String rawEmbedId = readEmbedId(event);
         final Long embedId = parseEmbedId(rawEmbedId);
         final long channelId = event.getChannel().getIdLong();

@@ -58,6 +58,7 @@ import me.eeshe.celeoproc.service.impl.UserElectricityStatusServiceImpl;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 
 public final class Bot {
@@ -186,7 +187,10 @@ public final class Bot {
 
     private List<CommandData> computeCommandData() {
         return commandRegistry.getCommands()
-                .stream().map(BotCommand::createCommandData).toList();
+                .stream()
+                .map(command -> command.createCommandData()
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(command.requiredPermissions())))
+                .toList();
     }
 
     private void initializeInteractionExecutor() {

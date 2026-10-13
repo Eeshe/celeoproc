@@ -51,3 +51,21 @@ JDA (Discord Bot API): https://docs.jda.wiki/index.html
   `PowerOutageManagementListener` deletes the log right after calling
   `deleteRegistryMessages`, so a fully asynchronous row read would race the
   cascade and silently skip the message deletions.
+- **Why isn't `setDefaultPermissions` enough to lock down a slash command?**
+  Discord's `default_member_permissions` only sets a *default* that guild
+  moderators can override, and members with `ADMINISTRATOR` always bypass it.
+  `Bot.computeCommandData` applies
+  `DefaultMemberPermissions.enabledFor(command.requiredPermissions())` at
+  registration to hide commands by default, but
+  `CommandRegistryImpl.runCommand` performs the authoritative runtime
+  `member.hasPermission(...)` check (replying with `Message.NO_PERMISSION`)
+  before dispatching. Both are needed; neither replaces the other.
+- **Why does the component-interaction permission guard take `IReplyCallback`?**
+  `net.dv8tion.jda.api.interactions.Interaction` exposes `getMember()` but not
+  `reply(...)`; `reply` lives on `IReplyCallback`, which both
+  `ButtonInteractionEvent` and `ModalInteractionEvent` implement. So
+  `PowerOutageManagementListener.ensurePermission(Member, IReplyCallback)` takes
+  the member and the callback separately. Check permission *before*
+  `deferEdit()`/`deferReply(true)`: once deferred, an unauthorized click can no
+  longer answer with a direct ephemeral `Message.NO_PERMISSION`, only through
+  the deferred hook.

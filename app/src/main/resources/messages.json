@@ -4,6 +4,7 @@
   "generic_error": "Something went wrong.",
   "missing_argument": "Missing argument: {argument}",
   "guild_only": "This command can only be used in server text channels.",
+  "no_permission": "You need the **Manage Server** permission to run this command.",
   "electricity_status_embed_button_out": "🇻🇪️ Electricity out",
   "electricity_status_embed_button_in": "💡️ Electricity in",
   "electricity_status_already_has_electricity": "You already marked you have electricity",

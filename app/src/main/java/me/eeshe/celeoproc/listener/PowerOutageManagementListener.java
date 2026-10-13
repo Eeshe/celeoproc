@@ -22,6 +22,7 @@ import me.eeshe.celeoproc.model.PowerOutageLog;
 import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.PowerOutageLogService;
+import me.eeshe.celeoproc.util.BotPermissions;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.label.Label;
@@ -29,10 +30,12 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.modals.Modal;
 
@@ -158,6 +161,9 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
             event.reply(messageService.get(Message.GUILD_ONLY)).setEphemeral(true).queue();
             return;
         }
+        if (!ensurePermission(event.getMember(), event)) {
+            return;
+        }
         final Optional<PowerOutageLog> logOptional = powerOutageLogService.getById(id);
         if (logOptional.isEmpty()) {
             replyLogNotFound(event, id);
@@ -182,6 +188,9 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
             event.reply(messageService.get(Message.GUILD_ONLY)).setEphemeral(true).queue();
             return;
         }
+        if (!ensurePermission(event.getMember(), event)) {
+            return;
+        }
         final Optional<PowerOutageLog> logOptional = powerOutageLogService.getById(id);
         if (logOptional.isEmpty()) {
             replyLogNotFound(event, id);
@@ -201,6 +210,9 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
     private void handleDeleteConfirmationButton(final ButtonInteractionEvent event) {
         final UUID logId = parseLogId(event.getComponentId(), DELETE_CONFIRM_BUTTON_ID_PREFIX);
         if (logId == null) {
+            return;
+        }
+        if (!ensurePermission(event.getMember(), event)) {
             return;
         }
         event.deferEdit().queue(hook -> interactionExecutor.execute(() -> deleteLog(hook, logId)));
@@ -305,6 +317,9 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
         if (logId == null) {
             return;
         }
+        if (!ensurePermission(event.getMember(), event)) {
+            return;
+        }
         final String rawElectricityOut = readValue(event, ELECTRICITY_OUT_INPUT_ID);
         final String rawElectricityIn = readValue(event, ELECTRICITY_IN_INPUT_ID);
 
@@ -313,15 +328,34 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
     }
 
     /**
+     * Verifies the interacting member still holds the permission required to manage
+     * power outages, replying ephemerally with {@link Message#NO_PERMISSION} when
+     * they do not.
+     *
+     * @param member member that triggered the interaction, may be {@code null}
+     * @param event  callback used to answer the interaction
+     * @return whether the member is allowed to proceed
+     */
+    private boolean ensurePermission(final Member member, final IReplyCallback event) {
+        if (BotPermissions.isAllowed(member)) {
+            return true;
+        }
+        event.reply(messageService.get(Message.NO_PERMISSION))
+                .setEphemeral(true)
+                .queue();
+        return false;
+    }
+
+    /**
      * Applies the modal's date inputs to the log and re-renders its registry
      * messages, reporting the outcome through the deferred interaction's hook.
      * Runs on the interaction executor so the deferred acknowledgment is sent
      * before the database work.
      *
-     * @param hook               hook of the deferred interaction
-     * @param logId              id of the log to edit
-     * @param rawElectricityOut  trimmed raw electricity out input
-     * @param rawElectricityIn   trimmed raw electricity in input
+     * @param hook              hook of the deferred interaction
+     * @param logId             id of the log to edit
+     * @param rawElectricityOut trimmed raw electricity out input
+     * @param rawElectricityIn  trimmed raw electricity in input
      */
     private void editLog(
             final InteractionHook hook,

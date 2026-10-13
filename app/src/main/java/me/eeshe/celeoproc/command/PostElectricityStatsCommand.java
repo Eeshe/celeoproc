@@ -81,13 +81,6 @@ public final class PostElectricityStatsCommand implements BotCommand {
     @Override
     public void run(final SlashCommandInteractionEvent event) {
         final Guild guild = event.getGuild();
-        if (guild == null) {
-            event.reply(messageService.get(Message.GUILD_ONLY))
-                    .setEphemeral(true)
-                    .queue();
-            return;
-        }
-
         final String rawStartDate = readOption(event, START_DATE_OPTION);
         final LocalDate startDate = parseDate(rawStartDate);
         if (startDate == null) {

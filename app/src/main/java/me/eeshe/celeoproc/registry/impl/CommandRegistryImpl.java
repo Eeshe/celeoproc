@@ -14,16 +14,19 @@ import me.eeshe.celeoproc.command.ReloadCommand;
 import me.eeshe.celeoproc.command.SetElectricityRegistryCommand;
 import me.eeshe.celeoproc.command.UnsetElectricityRegistryCommand;
 import me.eeshe.celeoproc.config.AppSettings;
+import me.eeshe.celeoproc.config.Message;
 import me.eeshe.celeoproc.registry.CommandRegistry;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.PowerOutageGraphService;
 import me.eeshe.celeoproc.service.PowerOutageLogService;
 import me.eeshe.celeoproc.service.RegistryChannelService;
+import me.eeshe.celeoproc.util.BotPermissions;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 public final class CommandRegistryImpl implements CommandRegistry {
     private final Map<String, BotCommand> commands;
+    private final MessageService messageService;
 
     public CommandRegistryImpl(
             final MessageService messageService,
@@ -42,6 +45,7 @@ public final class CommandRegistryImpl implements CommandRegistry {
         Objects.requireNonNull(appSettings, "AppSettings must not be null");
         Objects.requireNonNull(bot, "Bot must not be null");
 
+        this.messageService = messageService;
         this.commands = new HashMap<>();
 
         populateCommands(messageService, electricityStatusEmbedService, registryChannelService, powerOutageLogService,
@@ -80,6 +84,18 @@ public final class CommandRegistryImpl implements CommandRegistry {
     public void runCommand(final String command, final SlashCommandInteractionEvent event) {
         final BotCommand botCommand = commands.get(command);
         if (botCommand == null) {
+            return;
+        }
+        if (!event.isFromGuild()) {
+            event.reply(messageService.get(Message.GUILD_ONLY))
+                    .setEphemeral(true)
+                    .queue();
+            return;
+        }
+        if (!BotPermissions.isAllowed(event.getMember(), botCommand.requiredPermissions())) {
+            event.reply(messageService.get(Message.NO_PERMISSION))
+                    .setEphemeral(true)
+                    .queue();
             return;
         }
         botCommand.run(event);
