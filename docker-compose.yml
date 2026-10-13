@@ -17,7 +17,7 @@ services:
 
   bot:
     build: .
-    image: celeoproc:latest
+    image: eeshe/celeoproc:latest
     env_file: .env
     environment:
       # Overrides the localhost in .env so the bot reaches the db service.
