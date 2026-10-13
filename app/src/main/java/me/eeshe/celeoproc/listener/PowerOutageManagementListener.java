@@ -243,8 +243,7 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
                         Map.of("log_id", logId.toString())));
                 return;
             }
-            replyDeletionResult(hook, messageService.get(Message.DELETE_POWER_OUTAGE_SUCCESS,
-                    Map.of("log_id", logId.toString())));
+            replyDeletionResult(hook, messageService.get(Message.DELETE_POWER_OUTAGE_SUCCESS));
         } catch (final RuntimeException exception) {
             LOGGER.error("Failed to delete the power outage log '{}'", logId, exception);
             replyDeletionResult(hook, messageService.get(Message.GENERIC_ERROR));
@@ -399,8 +398,7 @@ public final class PowerOutageManagementListener extends ListenerAdapter {
                     electricityOut,
                     electricityIn);
             electricityRegistryService.editRegistryMessages(updatedLog);
-            replyEphemeral(hook, messageService.get(Message.EDIT_POWER_OUTAGE_SUCCESS,
-                    Map.of("log_id", updatedLog.id().toString())));
+            replyEphemeral(hook, messageService.get(Message.EDIT_POWER_OUTAGE_SUCCESS));
         } catch (final RuntimeException exception) {
             LOGGER.error("Failed to edit the power outage log '{}'", logId, exception);
             replyEphemeral(hook, messageService.get(Message.GENERIC_ERROR));

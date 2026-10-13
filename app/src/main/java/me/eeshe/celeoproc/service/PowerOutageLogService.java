@@ -83,7 +83,7 @@ public interface PowerOutageLogService {
      * @param log     log to describe
      * @param guildId guild the log is being displayed in
      * @return placeholders for {@code nickname}, {@code electricity_out},
-     *         {@code electricity_in}, {@code power_outage_time} and {@code log_id}
+     *         {@code electricity_in} and {@code power_outage_time}
      */
     Map<String, String> buildLogPlaceholders(PowerOutageLog log, long guildId);
 

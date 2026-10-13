@@ -136,8 +136,7 @@ public final class PowerOutageLogServiceImpl implements PowerOutageLogService {
                 "nickname", nickname == null || nickname.isBlank() ? String.valueOf(log.userId()) : nickname,
                 "electricity_out", TimestampFormatter.format(log.electricityOut()),
                 "electricity_in", TimestampFormatter.format(log.electricityIn()),
-                "power_outage_time", DurationFormatter.format(computeLogDuration(log)),
-                "log_id", log.id().toString());
+                "power_outage_time", DurationFormatter.format(computeLogDuration(log)));
     }
 
     @Override

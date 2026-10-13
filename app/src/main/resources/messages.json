@@ -81,7 +81,7 @@
   "power_outage_delete_button": "🗑️ Delete",
   "delete_power_outage_confirm": "Are you sure you want to delete this power outage?\n\n{nickname}\n{electricity_out} -> {electricity_in} ({power_outage_time})",
   "delete_power_outage_confirm_button": "🗑️ Confirm",
-  "delete_power_outage_success": "Power outage log '{log_id}' has been deleted.",
+  "delete_power_outage_success": "Power outage log has been deleted.",
   "edit_power_outage_modal_title": "Editing Power Outage",
   "edit_power_outage_modal_description": "**Accepted date formats**\n- `YYYY-MM-dd hh:mm AM/PM` — e.g. `2026-10-08 10:30PM`\n- `hh:mm AM/PM` — time only, keeps the current date, e.g. `5:01PM`\nSingle-digit month/day/hour are also accepted.",
   "edit_power_outage_out_label": "Electricity Out Time",
@@ -89,5 +89,5 @@
   "edit_power_outage_invalid_date": "'{input}' is not a valid date. Use YYYY-MM-dd hh:mm AM/PM or hh:mm AM/PM.",
   "edit_power_outage_invalid_range": "Electricity in time must be after the electricity out time.",
   "edit_power_outage_missing_fields": "Fill in at least one field to edit this power outage.",
-  "edit_power_outage_success": "Power outage log '{log_id}' has been updated."
+  "edit_power_outage_success": "Power outage log has been updated."
 }

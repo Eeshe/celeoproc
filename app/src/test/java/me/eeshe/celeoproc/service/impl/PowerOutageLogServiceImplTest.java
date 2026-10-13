@@ -232,7 +232,6 @@ class PowerOutageLogServiceImplTest {
         final Map<String, String> placeholders = service.buildLogPlaceholders(log, GUILD_ID);
 
         assertEquals("Alice", placeholders.get("nickname"));
-        assertEquals(log.id().toString(), placeholders.get("log_id"));
         assertEquals("2h", placeholders.get("power_outage_time"));
         assertEquals("<t:%d:t>".formatted(Instant.parse("2025-05-06T10:00:00Z").getEpochSecond()),
                 placeholders.get("electricity_out"));
