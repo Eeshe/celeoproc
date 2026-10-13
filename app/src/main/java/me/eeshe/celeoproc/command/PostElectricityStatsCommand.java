@@ -110,8 +110,11 @@ public final class PostElectricityStatsCommand implements BotCommand {
         final PowerOutageStats stats = powerOutageLogService.getWithinRange(guild.getIdLong(), startDate, endDate);
 
         if (stats.server().logAmount() > 0) {
-            event.replyEmbeds(buildEmbed(Message.ELECTRICITY_STATS_SERVER_TITLE,
-                    buildServerDescription(stats.server()), startDate, endDate)).queue();
+            final List<MessageEmbed> serverEmbeds = buildServerEmbeds(stats.server(), startDate, endDate);
+            event.replyEmbeds(serverEmbeds.get(0)).queue();
+            for (int index = 1; index < serverEmbeds.size(); index++) {
+                event.getHook().sendMessageEmbeds(serverEmbeds.get(index)).queue();
+            }
         } else {
             event.reply(messageService.get(Message.ELECTRICITY_STATS_SERVER_NO_DATA))
                     .setEphemeral(true)
@@ -187,7 +190,54 @@ public final class PostElectricityStatsCommand implements BotCommand {
         return builder.build();
     }
 
-    private String buildServerDescription(final OutageStats stats) {
+    /**
+     * Splits the server stats into as many embeds as needed to keep each
+     * description within {@link MessageEmbed#DESCRIPTION_MAX_LENGTH}. The first
+     * embed also carries the general stats; any following embed only repeats the
+     * user stats header and packs further user entries.
+     */
+    private List<MessageEmbed> buildServerEmbeds(
+            final OutageStats stats,
+            final LocalDate startDate,
+            final LocalDate endDate) {
+        if (stats.userStats().isEmpty()) {
+            return List.of(buildEmbed(Message.ELECTRICITY_STATS_SERVER_TITLE,
+                    buildServerGeneralDescription(stats), startDate, endDate));
+        }
+
+        final String userHeader = messageService.get(Message.ELECTRICITY_STATS_SERVER_USER_HEADER);
+        final List<MessageEmbed> embeds = new ArrayList<>();
+
+        StringBuilder description = new StringBuilder(buildServerGeneralDescription(stats))
+                .append("\n\n")
+                .append(userHeader);
+        int descriptionLength = description.length();
+        boolean hasEntry = false;
+        boolean canFlush = true;
+
+        for (final UserOutageStats user : stats.userStats()) {
+            final String entry = formatUserEntry(user);
+            String separator = hasEntry ? "\n\n" : "\n";
+            int additional = separator.length() + entry.length();
+
+            if (descriptionLength + additional > MessageEmbed.DESCRIPTION_MAX_LENGTH && canFlush) {
+                embeds.add(buildEmbed(Message.ELECTRICITY_STATS_SERVER_TITLE, description.toString(),
+                        startDate, endDate));
+                description = new StringBuilder(userHeader);
+                descriptionLength = description.length();
+                separator = "\n";
+                additional = separator.length() + entry.length();
+            }
+            description.append(separator).append(entry);
+            descriptionLength += additional;
+            hasEntry = true;
+            canFlush = true;
+        }
+        embeds.add(buildEmbed(Message.ELECTRICITY_STATS_SERVER_TITLE, description.toString(), startDate, endDate));
+        return embeds;
+    }
+
+    private String buildServerGeneralDescription(final OutageStats stats) {
         final List<String> generalLines = new ArrayList<>();
         generalLines.add(messageService.get(Message.ELECTRICITY_STATS_SERVER_TOTAL_OUTAGES, Map.of(
                 "log_amount", String.valueOf(stats.logAmount()))));
@@ -209,21 +259,11 @@ public final class PostElectricityStatsCommand implements BotCommand {
                 "user_total_power_outages", String.valueOf(awardWinner.logAmount()),
                 "user_total_power_outage_time", DurationFormatter.format(awardWinner.totalTime()))));
 
-        final StringBuilder description = new StringBuilder()
+        return new StringBuilder()
                 .append(messageService.get(Message.ELECTRICITY_STATS_SERVER_GENERAL_HEADER))
                 .append("\n\n")
-                .append(String.join("\n", generalLines));
-
-        if (!stats.userStats().isEmpty()) {
-            final List<String> userEntries = stats.userStats().stream()
-                    .map(this::formatUserEntry)
-                    .toList();
-            description.append("\n\n")
-                    .append(messageService.get(Message.ELECTRICITY_STATS_SERVER_USER_HEADER))
-                    .append("\n")
-                    .append(String.join("\n\n", userEntries));
-        }
-        return description.toString();
+                .append(String.join("\n", generalLines))
+                .toString();
     }
 
     private String buildGlobalDescription(final OutageStats stats) {
