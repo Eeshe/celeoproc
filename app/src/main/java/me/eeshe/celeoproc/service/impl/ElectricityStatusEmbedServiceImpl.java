@@ -158,6 +158,10 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
 
         final EmbedBuilder builder = new EmbedBuilder()
                 .setTitle(messageService.get(Message.ELECTRICITY_STATUS_EMBED_TITLE));
+        final String thumbnailUrl = appSettings.getEmbedThumbnailUrl();
+        if (thumbnailUrl != null && !thumbnailUrl.isBlank()) {
+            builder.setThumbnail(thumbnailUrl);
+        }
         if (!description.isBlank()) {
             builder.setDescription(description);
         }

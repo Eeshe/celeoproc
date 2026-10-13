@@ -50,7 +50,7 @@ public final class PostElectricityStatsCommand implements BotCommand {
      * @param messageService          source of the configurable command messages
      * @param powerOutageLogService   source of the aggregated outage stats
      * @param powerOutageGraphService renderer of the outage graphs
-     * @param appSettings             settings providing the stats thumbnail url
+     * @param appSettings             settings providing the embed thumbnail url
      */
     public PostElectricityStatsCommand(
             final MessageService messageService,
@@ -178,9 +178,9 @@ public final class PostElectricityStatsCommand implements BotCommand {
                 .setDescription(description)
                 .setFooter("%s -> %s".formatted(startDate.format(DATE_FORMATTER), endDate.format(DATE_FORMATTER)));
 
-        final String imageUrl = appSettings.getStatsImageUrl();
-        if (imageUrl != null && !imageUrl.isBlank()) {
-            builder.setThumbnail(imageUrl);
+        final String thumbnailUrl = appSettings.getEmbedThumbnailUrl();
+        if (thumbnailUrl != null && !thumbnailUrl.isBlank()) {
+            builder.setThumbnail(thumbnailUrl);
         }
         return builder.build();
     }
