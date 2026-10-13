@@ -33,9 +33,6 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatusEmbedService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ElectricityStatusEmbedServiceImpl.class);
 
-    private static final String TITLE = "Electricity Tracker";
-    private static final String FOOTER_FORMAT = "Embed ID: %d";
-
     private final ElectricityStatusEmbedRepository electricityStatusEmbedRepository;
     private final UserElectricityStatusRepository userElectricityStatusRepository;
     private final MessageService messageService;
@@ -159,12 +156,14 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
                 .map(status -> formatParticipant(status, nicknames))
                 .collect(Collectors.joining("\n\n"));
 
-        final EmbedBuilder builder = new EmbedBuilder().setTitle(TITLE);
+        final EmbedBuilder builder = new EmbedBuilder()
+                .setTitle(messageService.get(Message.ELECTRICITY_STATUS_EMBED_TITLE));
         if (!description.isBlank()) {
             builder.setDescription(description);
         }
         if (messageId > 0L) {
-            builder.setFooter(FOOTER_FORMAT.formatted(messageId));
+            builder.setFooter(messageService.get(Message.ELECTRICITY_STATUS_EMBED_FOOTER,
+                    Map.of("embed_id", String.valueOf(messageId))));
         }
         return builder.build();
     }
@@ -193,7 +192,9 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         return messageService.get(Message.ELECTRICITY_STATUS_EMBED_OUTAGE_TODAY, Map.of(
                 "nickname", nickname,
                 "out", TimestampFormatter.format(status.getElectricityOut()),
-                "in", TimestampFormatter.format(status.getElectricityIn())));
+                "in", TimestampFormatter.format(status.getElectricityIn()),
+                "power_outage_time_relative", DurationFormatter.format(
+                        Duration.between(status.getElectricityOut(), status.getElectricityIn()))));
     }
 
     private String formatWithoutOutageHistory(final String nickname) {

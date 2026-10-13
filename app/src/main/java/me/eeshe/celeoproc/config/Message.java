@@ -3,6 +3,7 @@ package me.eeshe.celeoproc.config;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.label.Label;
 import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.modals.Modal;
 
 /**
@@ -41,6 +42,8 @@ public enum Message {
             Modal.MAX_TITLE_LENGTH),
     ELECTRICITY_STATUS_EMBED_REMOVE_PARTICIPANT_MODAL_LABEL("electricity_status_embed_remove_participant_modal_label",
             Label.LABEL_MAX_LENGTH),
+    ELECTRICITY_STATUS_EMBED_TITLE("electricity_status_embed_title", MessageEmbed.TITLE_MAX_LENGTH),
+    ELECTRICITY_STATUS_EMBED_FOOTER("electricity_status_embed_footer", MessageEmbed.TEXT_MAX_LENGTH),
 
     ELECTRICITY_REGISTRY_OUT("electricity_registry_out"),
     ELECTRICITY_REGISTRY_IN("electricity_registry_in"),
@@ -55,7 +58,6 @@ public enum Message {
     ELECTRICITY_STATUS_EMBED_NO_OUTAGE_HISTORY("electricity_status_embed_no_outage_history"),
     ELECTRICITY_STATUS_REMINDER("electricity_status_reminder"),
 
-    BOT_INFO("bot_info"),
     RELOAD_SUCCESS("reload_success"),
     RELOAD_ERROR("reload_error"),
 

@@ -7,7 +7,6 @@ import java.util.Objects;
 
 import me.eeshe.celeoproc.Bot;
 import me.eeshe.celeoproc.command.BotCommand;
-import me.eeshe.celeoproc.command.CeleoprocCommand;
 import me.eeshe.celeoproc.command.PostElectricityStatsCommand;
 import me.eeshe.celeoproc.command.PostElectricityStatusEmbedCommand;
 import me.eeshe.celeoproc.command.ReloadCommand;
@@ -60,7 +59,6 @@ public final class CommandRegistryImpl implements CommandRegistry {
             final PowerOutageGraphService powerOutageGraphService,
             final AppSettings appSettings,
             final Bot bot) {
-        commands.put(CeleoprocCommand.NAME, new CeleoprocCommand(messageService));
         commands.put(ReloadCommand.NAME, new ReloadCommand(messageService, bot));
         commands.put(PostElectricityStatusEmbedCommand.NAME,
                 new PostElectricityStatusEmbedCommand(messageService, electricityStatusEmbedService));
