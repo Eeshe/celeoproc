@@ -12,6 +12,12 @@ public interface CommandRegistry {
 
     boolean isCommand(String command);
 
+    /**
+     * Re-indexes the commands against the current configuration, picking up any
+     * changed command names.
+     */
+    void refresh();
+
     void runCommand(String command, SlashCommandInteractionEvent event);
 
     Collection<BotCommand> getCommands();

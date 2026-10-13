@@ -1,7 +1,9 @@
 package me.eeshe.celeoproc.registry.impl;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,7 +26,8 @@ import me.eeshe.celeoproc.util.BotPermissions;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 public final class CommandRegistryImpl implements CommandRegistry {
-    private final Map<String, BotCommand> commands;
+    private final List<BotCommand> commandList;
+    private volatile Map<String, BotCommand> commands;
     private final MessageService messageService;
 
     public CommandRegistryImpl(
@@ -45,10 +48,11 @@ public final class CommandRegistryImpl implements CommandRegistry {
         Objects.requireNonNull(bot, "Bot must not be null");
 
         this.messageService = messageService;
-        this.commands = new HashMap<>();
+        this.commandList = new ArrayList<>();
 
         populateCommands(messageService, electricityStatusEmbedService, registryChannelService, powerOutageLogService,
                 powerOutageGraphService, appSettings, bot);
+        indexCommands();
     }
 
     private void populateCommands(
@@ -59,18 +63,35 @@ public final class CommandRegistryImpl implements CommandRegistry {
             final PowerOutageGraphService powerOutageGraphService,
             final AppSettings appSettings,
             final Bot bot) {
-        commands.put(ReloadCommand.NAME, new ReloadCommand(messageService, bot));
-        commands.put(PostElectricityStatusEmbedCommand.NAME,
-                new PostElectricityStatusEmbedCommand(messageService, electricityStatusEmbedService));
-        commands.put(PostElectricityStatsCommand.NAME,
-                new PostElectricityStatsCommand(messageService, powerOutageLogService, powerOutageGraphService,
-                        appSettings));
-        commands.put(SetElectricityRegistryCommand.NAME,
-                new SetElectricityRegistryCommand(messageService, electricityStatusEmbedService,
-                        registryChannelService));
-        commands.put(UnsetElectricityRegistryCommand.NAME,
-                new UnsetElectricityRegistryCommand(messageService, electricityStatusEmbedService,
-                        registryChannelService));
+        commandList.add(new ReloadCommand(messageService, bot));
+        commandList.add(new PostElectricityStatusEmbedCommand(messageService, electricityStatusEmbedService));
+        commandList.add(new PostElectricityStatsCommand(messageService, powerOutageLogService, powerOutageGraphService,
+                appSettings));
+        commandList.add(new SetElectricityRegistryCommand(messageService, electricityStatusEmbedService,
+                registryChannelService));
+        commandList.add(new UnsetElectricityRegistryCommand(messageService, electricityStatusEmbedService,
+                registryChannelService));
+    }
+
+    /**
+     * Indexes the commands by their configured names, replacing the previous map
+     * atomically so a failed refresh leaves the old commands in place.
+     */
+    private void indexCommands() {
+        final Map<String, BotCommand> indexed = new HashMap<>();
+        for (final BotCommand command : commandList) {
+            final String name = command.createCommandData().getName();
+            final BotCommand previous = indexed.put(name, command);
+            if (previous != null) {
+                throw new IllegalStateException("Duplicate command name '%s'".formatted(name));
+            }
+        }
+        this.commands = indexed;
+    }
+
+    @Override
+    public void refresh() {
+        indexCommands();
     }
 
     @Override
@@ -101,6 +122,6 @@ public final class CommandRegistryImpl implements CommandRegistry {
 
     @Override
     public Collection<BotCommand> getCommands() {
-        return commands.values();
+        return commandList;
     }
 }

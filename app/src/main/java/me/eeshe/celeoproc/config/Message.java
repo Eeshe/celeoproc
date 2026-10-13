@@ -4,6 +4,8 @@ import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.label.Label;
 import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.modals.Modal;
 
 /**
@@ -22,6 +24,32 @@ public enum Message {
     MISSING_ARGUMENT("missing_argument"),
     GUILD_ONLY("guild_only"),
     NO_PERMISSION("no_permission"),
+
+    COMMAND_RELOAD_NAME("command_reload_name", CommandData.MAX_NAME_LENGTH),
+    COMMAND_RELOAD_DESCRIPTION("command_reload_description", CommandData.MAX_DESCRIPTION_LENGTH),
+    COMMAND_POSTEMBED_NAME("command_postembed_name", CommandData.MAX_NAME_LENGTH),
+    COMMAND_POSTEMBED_DESCRIPTION("command_postembed_description", CommandData.MAX_DESCRIPTION_LENGTH),
+    COMMAND_POSTSTATS_NAME("command_poststats_name", CommandData.MAX_NAME_LENGTH),
+    COMMAND_POSTSTATS_DESCRIPTION("command_poststats_description", CommandData.MAX_DESCRIPTION_LENGTH),
+    COMMAND_POSTSTATS_OPTION_START_DATE_NAME("command_poststats_option_start_date_name",
+            OptionData.MAX_NAME_LENGTH),
+    COMMAND_POSTSTATS_OPTION_START_DATE_DESCRIPTION("command_poststats_option_start_date_description",
+            OptionData.MAX_DESCRIPTION_LENGTH),
+    COMMAND_POSTSTATS_OPTION_END_DATE_NAME("command_poststats_option_end_date_name", OptionData.MAX_NAME_LENGTH),
+    COMMAND_POSTSTATS_OPTION_END_DATE_DESCRIPTION("command_poststats_option_end_date_description",
+            OptionData.MAX_DESCRIPTION_LENGTH),
+    COMMAND_SETREGISTRY_NAME("command_setregistry_name", CommandData.MAX_NAME_LENGTH),
+    COMMAND_SETREGISTRY_DESCRIPTION("command_setregistry_description", CommandData.MAX_DESCRIPTION_LENGTH),
+    COMMAND_SETREGISTRY_OPTION_EMBED_ID_NAME("command_setregistry_option_embed_id_name",
+            OptionData.MAX_NAME_LENGTH),
+    COMMAND_SETREGISTRY_OPTION_EMBED_ID_DESCRIPTION("command_setregistry_option_embed_id_description",
+            OptionData.MAX_DESCRIPTION_LENGTH),
+    COMMAND_UNSETREGISTRY_NAME("command_unsetregistry_name", CommandData.MAX_NAME_LENGTH),
+    COMMAND_UNSETREGISTRY_DESCRIPTION("command_unsetregistry_description", CommandData.MAX_DESCRIPTION_LENGTH),
+    COMMAND_UNSETREGISTRY_OPTION_EMBED_ID_NAME("command_unsetregistry_option_embed_id_name",
+            OptionData.MAX_NAME_LENGTH),
+    COMMAND_UNSETREGISTRY_OPTION_EMBED_ID_DESCRIPTION("command_unsetregistry_option_embed_id_description",
+            OptionData.MAX_DESCRIPTION_LENGTH),
 
     ELECTRICITY_STATUS_EMBED_BUTTON_OUT("electricity_status_embed_button_out", Button.LABEL_MAX_LENGTH),
     ELECTRICITY_STATUS_EMBED_BUTTON_IN("electricity_status_embed_button_in", Button.LABEL_MAX_LENGTH),
@@ -124,5 +152,13 @@ public enum Message {
      */
     public int maxLength() {
         return maxLength;
+    }
+
+    /**
+     * @return {@code true} when this message configures a slash command or option
+     *         name, which must follow Discord's lowercase name format
+     */
+    public boolean isCommandName() {
+        return key.startsWith("command_") && key.endsWith("_name");
     }
 }

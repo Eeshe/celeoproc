@@ -11,8 +11,6 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
 public final class ReloadCommand implements BotCommand {
-    public static final String NAME = "reload";
-
     private final MessageService messageService;
     private final Bot bot;
 
@@ -25,7 +23,8 @@ public final class ReloadCommand implements BotCommand {
 
     @Override
     public CommandData createCommandData() {
-        return Commands.slash(NAME, "Reload bot configuration");
+        return Commands.slash(messageService.get(Message.COMMAND_RELOAD_NAME),
+                messageService.get(Message.COMMAND_RELOAD_DESCRIPTION));
     }
 
     @Override
@@ -35,6 +34,9 @@ public final class ReloadCommand implements BotCommand {
             if (!config.reload()) {
                 success = false;
             }
+        }
+        if (success) {
+            bot.refreshCommands();
         }
 
         event.reply(messageService.get(success ? Message.RELOAD_SUCCESS : Message.RELOAD_ERROR))

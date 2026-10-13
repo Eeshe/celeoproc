@@ -14,9 +14,6 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
 public final class UnsetElectricityRegistryCommand implements BotCommand {
-    public static final String NAME = "unsetelectricityregistry";
-    private static final String EMBED_ID_OPTION = "embed_id";
-
     private final MessageService messageService;
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
     private final RegistryChannelService registryChannelService;
@@ -37,8 +34,11 @@ public final class UnsetElectricityRegistryCommand implements BotCommand {
 
     @Override
     public CommandData createCommandData() {
-        return Commands.slash(NAME, "Stop this channel from receiving registry messages for an embed")
-                .addOption(OptionType.STRING, EMBED_ID_OPTION, "ID of the electricity status embed", true);
+        return Commands.slash(messageService.get(Message.COMMAND_UNSETREGISTRY_NAME),
+                messageService.get(Message.COMMAND_UNSETREGISTRY_DESCRIPTION))
+                .addOption(OptionType.STRING,
+                        messageService.get(Message.COMMAND_UNSETREGISTRY_OPTION_EMBED_ID_NAME),
+                        messageService.get(Message.COMMAND_UNSETREGISTRY_OPTION_EMBED_ID_DESCRIPTION), true);
     }
 
     @Override
@@ -63,7 +63,8 @@ public final class UnsetElectricityRegistryCommand implements BotCommand {
     }
 
     private String readEmbedId(final SlashCommandInteractionEvent event) {
-        final OptionMapping mapping = event.getOption(EMBED_ID_OPTION);
+        final OptionMapping mapping = event.getOption(
+                messageService.get(Message.COMMAND_UNSETREGISTRY_OPTION_EMBED_ID_NAME));
         return mapping == null ? "" : mapping.getAsString().trim();
     }
 

@@ -69,3 +69,16 @@ JDA (Discord Bot API): https://docs.jda.wiki/index.html
   `deferEdit()`/`deferReply(true)`: once deferred, an unauthorized click can no
   longer answer with a direct ephemeral `Message.NO_PERMISSION`, only through
   the deferred hook.
+- **Where do slash command names/descriptions/parameters come from?** Flat
+  `command_*` keys in `messages.json` (e.g. `command_poststats_name`,
+  `command_poststats_option_start_date_name`), declared as `Message` enum
+  entries so `AppMessages` validates presence, non-blank, max length
+  (`CommandData`/`OptionData` constants), Discord name format
+  (`[a-z0-9_-]{1,32}`) and duplicate command names. There are no hardcoded
+  `NAME` constants: `CommandRegistryImpl` indexes each `BotCommand` by
+  `createCommandData().getName()`, and `/reload` calls `Bot.refreshCommands()`
+  to rebuild that map atomically and re-register the global + guild commands.
+  Adding a command means adding its `command_*` keys to all four message files
+  (`languages/messages.en.json`, `languages/messages.es.json`,
+  `app/src/main/resources/messages.json`, and the gitignored
+  `config/messages.json`) or startup validation fails.

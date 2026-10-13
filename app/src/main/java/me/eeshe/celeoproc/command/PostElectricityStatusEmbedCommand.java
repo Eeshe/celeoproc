@@ -11,8 +11,6 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
 public final class PostElectricityStatusEmbedCommand implements BotCommand {
-    public static final String NAME = "postelectricitystatusembed";
-
     private final MessageService messageService;
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
 
@@ -29,7 +27,8 @@ public final class PostElectricityStatusEmbedCommand implements BotCommand {
 
     @Override
     public CommandData createCommandData() {
-        return Commands.slash(NAME, "Post the electricity status embed");
+        return Commands.slash(messageService.get(Message.COMMAND_POSTEMBED_NAME),
+                messageService.get(Message.COMMAND_POSTEMBED_DESCRIPTION));
     }
 
     @Override

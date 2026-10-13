@@ -164,6 +164,15 @@ public final class Bot {
                 electricityRegistryService, interactionExecutor));
     }
 
+    /**
+     * Re-indexes the commands from the current configuration and re-registers them
+     * with Discord, picking up changed command names/descriptions/parameters.
+     */
+    public void refreshCommands() {
+        commandRegistry.refresh();
+        registerCommands();
+    }
+
     private void registerCommands() {
         registerGlobalCommands();
         registerGuildCommands();

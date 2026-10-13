@@ -37,9 +37,6 @@ import net.dv8tion.jda.api.utils.FileUpload;
 public final class PostElectricityStatsCommand implements BotCommand {
     private static final Logger LOGGER = LoggerFactory.getLogger(PostElectricityStatsCommand.class);
 
-    public static final String NAME = "postelectricitystats";
-    private static final String START_DATE_OPTION = "start_date";
-    private static final String END_DATE_OPTION = "end_date";
     private static final int MAX_FILES_PER_MESSAGE = 10;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
@@ -73,21 +70,26 @@ public final class PostElectricityStatsCommand implements BotCommand {
 
     @Override
     public CommandData createCommandData() {
-        return Commands.slash(NAME, "Show power outage stats for a date range")
-                .addOption(OptionType.STRING, START_DATE_OPTION, "Start date in YYYY-MM-DD format", true)
-                .addOption(OptionType.STRING, END_DATE_OPTION, "End date in YYYY-MM-DD format", true);
+        return Commands.slash(messageService.get(Message.COMMAND_POSTSTATS_NAME),
+                messageService.get(Message.COMMAND_POSTSTATS_DESCRIPTION))
+                .addOption(OptionType.STRING,
+                        messageService.get(Message.COMMAND_POSTSTATS_OPTION_START_DATE_NAME),
+                        messageService.get(Message.COMMAND_POSTSTATS_OPTION_START_DATE_DESCRIPTION), true)
+                .addOption(OptionType.STRING,
+                        messageService.get(Message.COMMAND_POSTSTATS_OPTION_END_DATE_NAME),
+                        messageService.get(Message.COMMAND_POSTSTATS_OPTION_END_DATE_DESCRIPTION), true);
     }
 
     @Override
     public void run(final SlashCommandInteractionEvent event) {
         final Guild guild = event.getGuild();
-        final String rawStartDate = readOption(event, START_DATE_OPTION);
+        final String rawStartDate = readOption(event, Message.COMMAND_POSTSTATS_OPTION_START_DATE_NAME);
         final LocalDate startDate = parseDate(rawStartDate);
         if (startDate == null) {
             replyInvalidDate(event, rawStartDate);
             return;
         }
-        final String rawEndDate = readOption(event, END_DATE_OPTION);
+        final String rawEndDate = readOption(event, Message.COMMAND_POSTSTATS_OPTION_END_DATE_NAME);
         final LocalDate endDate = parseDate(rawEndDate);
         if (endDate == null) {
             replyInvalidDate(event, rawEndDate);
@@ -280,8 +282,8 @@ public final class PostElectricityStatsCommand implements BotCommand {
                 "shortest_power_outage_time", DurationFormatter.format(user.shortestTime())));
     }
 
-    private String readOption(final SlashCommandInteractionEvent event, final String optionName) {
-        final OptionMapping mapping = event.getOption(optionName);
+    private String readOption(final SlashCommandInteractionEvent event, final Message optionName) {
+        final OptionMapping mapping = event.getOption(messageService.get(optionName));
         return mapping == null ? "" : mapping.getAsString().trim();
     }
 
