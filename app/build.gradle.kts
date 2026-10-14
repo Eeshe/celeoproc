@@ -64,5 +64,7 @@ fun loadEnvFile(file: File): Map<String, String> {
 
 tasks.named<JavaExec>("run") {
     workingDir = rootDir
-    environment(loadEnvFile(rootDir.resolve(".env")).filterKeys { !System.getenv().containsKey(it) })
+    // Later entries win; real environment variables always take precedence.
+    val fileEnv = loadEnvFile(rootDir.resolve(".env.db")) + loadEnvFile(rootDir.resolve(".env.bot"))
+    environment(fileEnv.filterKeys { !System.getenv().containsKey(it) })
 }

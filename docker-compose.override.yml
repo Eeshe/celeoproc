@@ -1,0 +1,6 @@
+# Development override: automatically merged by `docker compose` when run from
+# inside this repository. Users who copy only docker-compose.yml pull the
+# published image instead of building from source.
+services:
+  bot:
+    build: .
