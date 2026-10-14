@@ -25,8 +25,6 @@ public enum Message {
     GUILD_ONLY("guild_only"),
     NO_PERMISSION("no_permission"),
 
-    COMMAND_RELOAD_NAME("command_reload_name", CommandData.MAX_NAME_LENGTH),
-    COMMAND_RELOAD_DESCRIPTION("command_reload_description", CommandData.MAX_DESCRIPTION_LENGTH),
     COMMAND_POSTEMBED_NAME("command_postembed_name", CommandData.MAX_NAME_LENGTH),
     COMMAND_POSTEMBED_DESCRIPTION("command_postembed_description", CommandData.MAX_DESCRIPTION_LENGTH),
     COMMAND_POSTSTATS_NAME("command_poststats_name", CommandData.MAX_NAME_LENGTH),
@@ -85,9 +83,6 @@ public enum Message {
     ELECTRICITY_STATUS_EMBED_NO_ELECTRICITY("electricity_status_embed_no_electricity"),
     ELECTRICITY_STATUS_EMBED_NO_OUTAGE_HISTORY("electricity_status_embed_no_outage_history"),
     ELECTRICITY_STATUS_REMINDER("electricity_status_reminder"),
-
-    RELOAD_SUCCESS("reload_success"),
-    RELOAD_ERROR("reload_error"),
 
     POST_ELECTRICITY_STATS_INVALID_DATE("post_electricity_stats_invalid_date"),
     POST_ELECTRICITY_STATS_INVALID_RANGE("post_electricity_stats_invalid_range"),

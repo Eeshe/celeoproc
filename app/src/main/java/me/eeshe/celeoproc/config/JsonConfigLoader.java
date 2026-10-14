@@ -5,9 +5,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -20,8 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * its parsed contents.
  */
 public abstract class JsonConfigLoader {
-    private static final Logger LOGGER = LoggerFactory.getLogger(JsonConfigLoader.class);
-
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final String label;
@@ -51,23 +46,6 @@ public abstract class JsonConfigLoader {
 
         validate(root);
         apply(root);
-    }
-
-    /**
-     * Reloads the configuration, keeping the current values if parsing fails.
-     *
-     * @return {@code true} if the configuration was reloaded successfully,
-     *         {@code false} if it could not be parsed
-     */
-    public final boolean reload() {
-        try {
-            load();
-            LOGGER.info("Reloaded {} from {}", label, externalPath().toAbsolutePath());
-            return true;
-        } catch (RuntimeException exception) {
-            LOGGER.error("Failed to reload {}, keeping current values", label, exception);
-            return false;
-        }
     }
 
     /**

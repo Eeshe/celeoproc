@@ -7,11 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import me.eeshe.celeoproc.Bot;
 import me.eeshe.celeoproc.command.BotCommand;
 import me.eeshe.celeoproc.command.PostElectricityStatsCommand;
 import me.eeshe.celeoproc.command.PostElectricityStatusEmbedCommand;
-import me.eeshe.celeoproc.command.ReloadCommand;
 import me.eeshe.celeoproc.command.SetElectricityRegistryCommand;
 import me.eeshe.celeoproc.command.UnsetElectricityRegistryCommand;
 import me.eeshe.celeoproc.config.AppSettings;
@@ -27,7 +25,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 
 public final class CommandRegistryImpl implements CommandRegistry {
     private final List<BotCommand> commandList;
-    private volatile Map<String, BotCommand> commands;
+    private final Map<String, BotCommand> commands;
     private final MessageService messageService;
 
     public CommandRegistryImpl(
@@ -36,8 +34,7 @@ public final class CommandRegistryImpl implements CommandRegistry {
             final RegistryChannelService registryChannelService,
             final PowerOutageLogService powerOutageLogService,
             final PowerOutageGraphService powerOutageGraphService,
-            final AppSettings appSettings,
-            final Bot bot) {
+            final AppSettings appSettings) {
         Objects.requireNonNull(messageService, "MessageService must not be null");
         Objects.requireNonNull(electricityStatusEmbedService,
                 "ElectricityStatusEmbedService must not be null");
@@ -45,14 +42,13 @@ public final class CommandRegistryImpl implements CommandRegistry {
         Objects.requireNonNull(powerOutageLogService, "PowerOutageLogService must not be null");
         Objects.requireNonNull(powerOutageGraphService, "PowerOutageGraphService must not be null");
         Objects.requireNonNull(appSettings, "AppSettings must not be null");
-        Objects.requireNonNull(bot, "Bot must not be null");
 
         this.messageService = messageService;
         this.commandList = new ArrayList<>();
 
         populateCommands(messageService, electricityStatusEmbedService, registryChannelService, powerOutageLogService,
-                powerOutageGraphService, appSettings, bot);
-        indexCommands();
+                powerOutageGraphService, appSettings);
+        this.commands = indexCommands();
     }
 
     private void populateCommands(
@@ -61,9 +57,7 @@ public final class CommandRegistryImpl implements CommandRegistry {
             final RegistryChannelService registryChannelService,
             final PowerOutageLogService powerOutageLogService,
             final PowerOutageGraphService powerOutageGraphService,
-            final AppSettings appSettings,
-            final Bot bot) {
-        commandList.add(new ReloadCommand(messageService, bot));
+            final AppSettings appSettings) {
         commandList.add(new PostElectricityStatusEmbedCommand(messageService, electricityStatusEmbedService));
         commandList.add(new PostElectricityStatsCommand(messageService, powerOutageLogService, powerOutageGraphService,
                 appSettings));
@@ -74,10 +68,11 @@ public final class CommandRegistryImpl implements CommandRegistry {
     }
 
     /**
-     * Indexes the commands by their configured names, replacing the previous map
-     * atomically so a failed refresh leaves the old commands in place.
+     * Indexes the commands by their configured names.
+     *
+     * @return the indexed commands
      */
-    private void indexCommands() {
+    private Map<String, BotCommand> indexCommands() {
         final Map<String, BotCommand> indexed = new HashMap<>();
         for (final BotCommand command : commandList) {
             final String name = command.createCommandData().getName();
@@ -86,12 +81,7 @@ public final class CommandRegistryImpl implements CommandRegistry {
                 throw new IllegalStateException("Duplicate command name '%s'".formatted(name));
             }
         }
-        this.commands = indexed;
-    }
-
-    @Override
-    public void refresh() {
-        indexCommands();
+        return indexed;
     }
 
     @Override

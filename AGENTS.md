@@ -76,8 +76,7 @@ JDA (Discord Bot API): https://docs.jda.wiki/index.html
   (`CommandData`/`OptionData` constants), Discord name format
   (`[a-z0-9_-]{1,32}`) and duplicate command names. There are no hardcoded
   `NAME` constants: `CommandRegistryImpl` indexes each `BotCommand` by
-  `createCommandData().getName()`, and `/reload` calls `Bot.refreshCommands()`
-  to rebuild that map atomically and re-register the global + guild commands.
+  `createCommandData().getName()` once at startup.
   Adding a command means adding its `command_*` keys to all four message files
   (`languages/messages.en.json`, `languages/messages.es.json`,
   `app/src/main/resources/messages.json`, and the gitignored

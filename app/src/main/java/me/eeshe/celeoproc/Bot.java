@@ -15,7 +15,6 @@ import me.eeshe.celeoproc.command.BotCommand;
 import me.eeshe.celeoproc.config.AppMessages;
 import me.eeshe.celeoproc.config.AppSecrets;
 import me.eeshe.celeoproc.config.AppSettings;
-import me.eeshe.celeoproc.config.JsonConfigLoader;
 import me.eeshe.celeoproc.database.Database;
 import me.eeshe.celeoproc.database.impl.PostgreSQLDatabase;
 import me.eeshe.celeoproc.listener.CommandListener;
@@ -78,7 +77,6 @@ public final class Bot {
     private RegistryChannelService registryChannelService;
     private CommandRegistry commandRegistry;
 
-    private final List<JsonConfigLoader> configs;
     private final List<BotScheduler> botSchedulers = new ArrayList<>();
 
     private JDA bot;
@@ -98,7 +96,6 @@ public final class Bot {
         this.appSettings = appSettings;
         this.appSecrets = appSecrets;
         this.appMessages = appMessages;
-        this.configs = List.of(appSettings, appMessages);
     }
 
     public void initialize() throws SQLException, InterruptedException {
@@ -152,7 +149,7 @@ public final class Bot {
 
     private void initializeRegistries() {
         this.commandRegistry = new CommandRegistryImpl(messageService, electricityStatusEmbedService,
-                registryChannelService, powerOutageLogService, powerOutageGraphService, appSettings, this);
+                registryChannelService, powerOutageLogService, powerOutageGraphService, appSettings);
     }
 
     private void registerListeners() {
@@ -162,15 +159,6 @@ public final class Bot {
                 interactionExecutor));
         bot.addEventListener(new PowerOutageManagementListener(powerOutageLogService, messageService, appSettings,
                 electricityRegistryService, interactionExecutor));
-    }
-
-    /**
-     * Re-indexes the commands from the current configuration and re-registers them
-     * with Discord, picking up changed command names/descriptions/parameters.
-     */
-    public void refreshCommands() {
-        commandRegistry.refresh();
-        registerCommands();
     }
 
     private void registerCommands() {
@@ -257,10 +245,6 @@ public final class Bot {
 
     public UserElectricityStatusService getUserElectricityStatusService() {
         return userElectricityStatusService;
-    }
-
-    public List<JsonConfigLoader> getConfigs() {
-        return configs;
     }
 
     public CommandRegistry getCommandRegistry() {
