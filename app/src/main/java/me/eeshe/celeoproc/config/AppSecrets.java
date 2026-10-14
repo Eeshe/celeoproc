@@ -10,11 +10,11 @@ import java.util.Objects;
  */
 public final class AppSecrets {
     private static final String DISCORD_BOT_TOKEN_ENV = "DISCORD_BOT_TOKEN";
-    private static final String POSTGRES_HOST_ENV = "PGHOST";
-    private static final String POSTGRES_PORT_ENV = "PGPORT";
-    private static final String POSTGRES_DATABASE_ENV = "PGDATABASE";
-    private static final String POSTGRES_USER_ENV = "PGUSER";
-    private static final String POSTGRES_PASSWORD_ENV = "PGPASSWORD";
+    private static final String POSTGRES_HOST_ENV = "POSTGRES_HOST";
+    private static final String POSTGRES_PORT_ENV = "POSTGRES_PORT";
+    private static final String POSTGRES_DATABASE_ENV = "POSTGRES_DB";
+    private static final String POSTGRES_USER_ENV = "POSTGRES_USER";
+    private static final String POSTGRES_PASSWORD_ENV = "POSTGRES_PASSWORD";
     private static final String DATABASE_POOL_SIZE_ENV = "DATABASE_POOL_SIZE";
     private static final String DATABASE_POOL_SIZE_DEFAULT = "10";
 

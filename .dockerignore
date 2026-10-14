@@ -6,7 +6,7 @@ app/bin
 .settings
 .project
 .classpath
-.env
+.env*
 config/
 data/
 languages/

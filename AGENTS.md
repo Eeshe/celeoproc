@@ -82,3 +82,17 @@ JDA (Discord Bot API): https://docs.jda.wiki/index.html
   (`languages/messages.en.json`, `languages/messages.es.json`,
   `app/src/main/resources/messages.json`, and the gitignored
   `config/messages.json`) or startup validation fails.
+- **Why do all Postgres vars use the `POSTGRES_*` prefix?** `AppSecrets` reads
+  `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_HOST` /
+  `POSTGRES_PORT`. Only the first three are consumed by the official `postgres`
+  image; `POSTGRES_HOST` / `POSTGRES_PORT` are app-only (the image defines
+  neither and always listens on 5432). The secrets live in two files: `.env.db`
+  (provisioning, `env_file` on the `db` service) and `.env.bot` (bot-only), and
+  the `bot` service lists both under `env_file` — no interpolation and no root
+  `.env` is involved. `docker-compose.yml` still overrides `POSTGRES_HOST: db`
+  for the container because `.env.bot` keeps `localhost` for `./gradlew run`
+  (the Gradle `run` task loads both files). Two consequences: keep the published
+  port bound `127.0.0.1:5432:5432` with the literal container port so
+  `POSTGRES_PORT` stays client-side, and because none of these are libpq names
+  `psql` inside `db` still needs explicit `-U`/`-d` (the healthcheck uses
+  `$$POSTGRES_USER`/`$$POSTGRES_DB`).
