@@ -13,7 +13,7 @@ import me.eeshe.celeoproc.util.DurationParser;
 
 public final class AppSettings extends JsonConfigLoader {
     private static final Duration DEFAULT_ELECTRICITY_OUT_ESTIMATE = Duration.ofHours(6);
-    private static final Duration DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY = Duration.ofMinutes(5);
+    private static final Duration DEFAULT_ELECTRICITY_STATUS_EMBED_UPDATE_FREQUENCY = Duration.ofMinutes(15);
     private static final Duration DEFAULT_ELECTRICITY_REMINDER_FREQUENCY = Duration.ofHours(2);
     private static final int DEFAULT_ELECTRICITY_STATUS_EMBED_PARTICIPANT_LIMIT = 20;
 

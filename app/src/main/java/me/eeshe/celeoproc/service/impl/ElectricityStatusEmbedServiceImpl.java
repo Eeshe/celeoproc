@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -66,17 +67,20 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
 
         channel.sendMessageEmbeds(buildElectricityStatusEmbed(List.of(), 0L, guildId))
                 .addComponents(buildButtons())
-                .queue(message -> {
-                    final long messageId = message.getIdLong();
-                    saveEmbed(messageId, guildId, channelId);
-                    message.editMessageEmbeds(buildElectricityStatusEmbed(List.of(), messageId, guildId))
-                            .queue(
-                                    ignored -> {
-                                    },
-                                    throwable -> LOGGER.error(
-                                            "Failed to set the footer on electricity status embed for message '{}'",
-                                            messageId, throwable));
-                },
+                .queue(
+                        message -> {
+                            final long messageId = message.getIdLong();
+                            saveEmbed(messageId, guildId, channelId);
+                            message.editMessageEmbeds(buildElectricityStatusEmbed(List.of(), messageId, guildId))
+                                    .queueAfter(
+                                            1L,
+                                            TimeUnit.SECONDS,
+                                            ignored -> {
+                                            },
+                                            throwable -> LOGGER.error(
+                                                    "Failed to set the footer on electricity status embed for message '{}'",
+                                                    messageId, throwable));
+                        },
                         throwable -> LOGGER.error(
                                 "Failed to send electricity status embed to channel '{}'", channelId, throwable));
         return true;
