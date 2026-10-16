@@ -1,0 +1,157 @@
+:root {
+  --red: #de2520;
+  --red-dark: #b81c18;
+  --navy: #19284f;
+  --bg: #fafafa;
+  --text: #19284f;
+  --muted: #5b6483;
+  --max-width: 640px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5rem;
+  padding: 4.5rem 1.5rem 2rem;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  text-align: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Language toggle, pinned to the top-right corner. */
+.lang-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.4rem 0.7rem;
+  border: 2px solid var(--navy);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.lang-toggle:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* GitHub link, pinned to the top-left corner (mirrors the language toggle). */
+.github-link {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  border: 2px solid var(--navy);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--navy);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.github-link:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
+.github-link__icon {
+  display: block;
+}
+
+.hero {
+  width: 100%;
+  max-width: var(--max-width);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.hero__logo {
+  margin: 0;
+}
+
+.hero__logo img {
+  display: block;
+  width: clamp(220px, 55vw, 340px);
+  height: auto;
+}
+
+.hero__tagline {
+  margin: 0;
+  font-size: clamp(1.15rem, 3.2vw, 1.5rem);
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.hero__support {
+  margin: 0;
+  max-width: 34rem;
+  font-size: clamp(0.95rem, 2.4vw, 1.05rem);
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.install-btn {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.85rem 1.75rem;
+  border-radius: 8px;
+  background: var(--red);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.install-btn:hover {
+  background: var(--red-dark);
+}
+
+.install-btn:active {
+  transform: translateY(1px);
+}
+
+.install-btn:focus-visible,
+.lang-toggle:focus-visible,
+.github-link:focus-visible {
+  outline: 3px solid var(--navy);
+  outline-offset: 3px;
+}
+
+.footer {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.footer p {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
