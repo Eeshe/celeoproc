@@ -2,15 +2,19 @@ package me.eeshe.celeoproc.listener;
 
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.config.Message;
+import me.eeshe.celeoproc.model.ElectricityStatusUpdateResult;
+import me.eeshe.celeoproc.model.SkippedChannel;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.RegistryChannelService;
@@ -75,6 +79,7 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
         final String componentId = event.getComponentId();
         final long userId = event.getUser().getIdLong();
         final long messageId = event.getMessageIdLong();
+        final long guildId = event.getGuild() == null ? -1L : event.getGuild().getIdLong();
         if (ElectricityStatusEmbedService.OPT_OUT_BUTTON_ID.equals(componentId)) {
             event.deferEdit().queue(hook -> interactionExecutor.execute(
                     () -> handleOptOut(hook, userId, messageId)));
@@ -103,7 +108,7 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
             return;
         }
         event.deferEdit().queue(hook -> interactionExecutor.execute(
-                () -> handleElectricityIn(hook, userId, messageId)));
+                () -> handleElectricityIn(hook, userId, messageId, guildId)));
     }
 
     /**
@@ -114,12 +119,21 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
      * @param hook      hook of the deferred interaction
      * @param userId    id of the user that pressed the button
      * @param messageId id of the embed message the button belongs to
+     * @param guildId   id of the guild the interaction happened in
      */
-    private void handleElectricityIn(final InteractionHook hook, final long userId, final long messageId) {
+    private void handleElectricityIn(
+            final InteractionHook hook,
+            final long userId,
+            final long messageId,
+            final long guildId) {
         try {
-            if (!userElectricityStatusService.setUserElectricityIn(userId, messageId)) {
+            final ElectricityStatusUpdateResult result = userElectricityStatusService
+                    .setUserElectricityIn(userId, messageId);
+            if (!result.updated()) {
                 replyEphemeral(hook, messageService.get(Message.ELECTRICITY_STATUS_ALREADY_HAS_ELECTRICITY));
+                return;
             }
+            notifySkippedChannels(hook, result.skippedChannels(), guildId);
         } catch (final RuntimeException exception) {
             LOGGER.error("Failed to handle the electricity in interaction of user '{}'", userId, exception);
             replyEphemeral(hook, messageService.get(Message.GENERIC_ERROR));
@@ -186,11 +200,12 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
         final net.dv8tion.jda.api.entities.Message embedMessage = event.getMessage();
         final long userId = event.getUser().getIdLong();
         final long embedMessageId = embedMessage == null ? -1L : embedMessage.getIdLong();
+        final long guildId = event.getGuild() == null ? -1L : event.getGuild().getIdLong();
         final ModalMapping mapping = event.getValue(ElectricityStatusEmbedService.ELECTRICITY_IN_ESTIMATE_INPUT_ID);
         final String rawInput = mapping == null ? null : mapping.getAsString();
 
         event.deferEdit().queue(hook -> interactionExecutor.execute(
-                () -> handleElectricityOut(hook, userId, embedMessageId, rawInput)));
+                () -> handleElectricityOut(hook, userId, embedMessageId, rawInput, guildId)));
     }
 
     /**
@@ -249,12 +264,14 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
      * @param embedMessageId id of the embed message the modal was opened from, or
      *                       a negative value when the message could not be resolved
      * @param rawInput       raw estimate input of the modal
+     * @param guildId        id of the guild the interaction happened in
      */
     private void handleElectricityOut(
             final InteractionHook hook,
             final long userId,
             final long embedMessageId,
-            final String rawInput) {
+            final String rawInput,
+            final long guildId) {
         try {
             if (embedMessageId < 0L) {
                 replyEphemeral(hook, messageService.get(Message.GENERIC_ERROR));
@@ -266,13 +283,55 @@ public final class ElectricityStatusEmbedListener extends ListenerAdapter {
                         Map.of("input", rawInput.trim())));
                 return;
             }
-            if (!userElectricityStatusService.setUserElectricityOut(userId, estimate, embedMessageId)) {
+            final ElectricityStatusUpdateResult result = userElectricityStatusService
+                    .setUserElectricityOut(userId, estimate, embedMessageId);
+            if (!result.updated()) {
                 replyEphemeral(hook, messageService.get(Message.ELECTRICITY_STATUS_ALREADY_NO_ELECTRICITY));
+                return;
             }
+            notifySkippedChannels(hook, result.skippedChannels(), guildId);
         } catch (final RuntimeException exception) {
             LOGGER.error("Failed to handle the electricity out modal of user '{}'", userId, exception);
             replyEphemeral(hook, messageService.get(Message.GENERIC_ERROR));
         }
+    }
+
+    /**
+     * Reports the registry channels that could not receive a message because the
+     * bot lacks permissions, filtering out channels from other guilds.
+     *
+     * @param hook            hook of the deferred interaction
+     * @param skippedChannels channels skipped while sending the registry messages
+     * @param guildId         id of the guild the interaction happened in
+     */
+    private void notifySkippedChannels(
+            final InteractionHook hook,
+            final List<SkippedChannel> skippedChannels,
+            final long guildId) {
+        final String channels = formatSkippedChannels(skippedChannels, guildId);
+        if (channels.isEmpty()) {
+            return;
+        }
+        replyEphemeral(hook, messageService.get(Message.BOT_MISSING_CHANNEL_PERMISSIONS,
+                Map.of("channel", channels)));
+    }
+
+    /**
+     * @param skippedChannels channels skipped while sending registry messages
+     * @param guildId         guild whose channels should be listed
+     * @return comma-separated channel mentions that belong to the guild, or an
+     *         empty string when none match
+     */
+    static String formatSkippedChannels(final List<SkippedChannel> skippedChannels, final long guildId) {
+        if (skippedChannels == null || skippedChannels.isEmpty()) {
+            return "";
+        }
+        return skippedChannels.stream()
+                .filter(channel -> channel != null && channel.guildId() == guildId)
+                .map(SkippedChannel::channelId)
+                .distinct()
+                .map(channelId -> "<#" + channelId + ">")
+                .collect(Collectors.joining(", "));
     }
 
     /**

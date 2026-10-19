@@ -18,18 +18,22 @@ import me.eeshe.celeoproc.config.Message;
 import me.eeshe.celeoproc.listener.PowerOutageManagementListener;
 import me.eeshe.celeoproc.model.PowerOutageLog;
 import me.eeshe.celeoproc.model.PowerOutageRegistryMessage;
+import me.eeshe.celeoproc.model.RegistrySendResult;
+import me.eeshe.celeoproc.model.SkippedChannel;
 import me.eeshe.celeoproc.service.ElectricityRegistryService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.NicknameResolver;
 import me.eeshe.celeoproc.service.PowerOutageLogService;
 import me.eeshe.celeoproc.service.PowerOutageRegistryMessageService;
 import me.eeshe.celeoproc.service.RegistryChannelService;
+import me.eeshe.celeoproc.util.BotPermissions;
 import me.eeshe.celeoproc.util.DurationFormatter;
 import me.eeshe.celeoproc.util.TimestampFormatter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 
 public final class ElectricityRegistryServiceImpl implements ElectricityRegistryService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ElectricityRegistryServiceImpl.class);
@@ -66,7 +70,7 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
     }
 
     @Override
-    public List<CompletableFuture<net.dv8tion.jda.api.entities.Message>> sendElectricityOut(final long userId,
+    public RegistrySendResult sendElectricityOut(final long userId,
             final Instant previousElectricityIn) {
         final String formattedDuration = previousElectricityIn == null
                 ? UNKNOWN_DURATION
@@ -77,7 +81,7 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
     }
 
     @Override
-    public List<CompletableFuture<net.dv8tion.jda.api.entities.Message>> sendElectricityIn(final PowerOutageLog log) {
+    public RegistrySendResult sendElectricityIn(final PowerOutageLog log) {
         Objects.requireNonNull(log, "PowerOutageLog must not be null");
 
         return send(log.userId(), Message.ELECTRICITY_REGISTRY_IN, buildElectricityInPlaceholders(log),
@@ -123,6 +127,11 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
                         registryMessage.channelId());
                 continue;
             }
+            if (!BotPermissions.canEditMessages(channel)) {
+                LOGGER.warn("Skipping electricity registry message edit: missing permissions in channel '{}'",
+                        registryMessage.channelId());
+                continue;
+            }
             final String nickname = nicknameResolver.resolveNickname(channel.getGuild().getIdLong(), log.userId());
 
             editMessage(
@@ -151,12 +160,17 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
             final long messageId,
             final Message message,
             final Map<String, String> placeholders) {
-        channel.editMessageById(messageId, messageService.get(message, placeholders))
-                .queue(
-                        ignored -> {
-                        },
-                        throwable -> LOGGER.error(
-                                "Failed to edit electricity registry message '{}'", messageId, throwable));
+        try {
+            channel.editMessageById(messageId, messageService.get(message, placeholders))
+                    .queue(
+                            ignored -> {
+                            },
+                            throwable -> LOGGER.error(
+                                    "Failed to edit electricity registry message '{}'", messageId, throwable));
+        } catch (final InsufficientPermissionException exception) {
+            LOGGER.warn("Skipping electricity registry message edit: missing permissions in channel '{}'",
+                    channel.getId(), exception);
+        }
     }
 
     @Override
@@ -189,6 +203,11 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
                         registryMessage.channelId());
                 continue;
             }
+            if (!BotPermissions.canDeleteMessages(channel)) {
+                LOGGER.warn("Skipping electricity registry message deletion: missing permissions in channel '{}'",
+                        registryMessage.channelId());
+                continue;
+            }
             deleteMessage(channel, registryMessage.registryOutMessageId());
             if (registryMessage.registryInMessageId() != null) {
                 deleteMessage(channel, registryMessage.registryInMessageId());
@@ -197,12 +216,17 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
     }
 
     private void deleteMessage(final TextChannel channel, final long messageId) {
-        channel.deleteMessageById(messageId)
-                .queue(
-                        ignored -> {
-                        },
-                        throwable -> LOGGER.error(
-                                "Failed to delete electricity registry message '{}'", messageId, throwable));
+        try {
+            channel.deleteMessageById(messageId)
+                    .queue(
+                            ignored -> {
+                            },
+                            throwable -> LOGGER.error(
+                                    "Failed to delete electricity registry message '{}'", messageId, throwable));
+        } catch (final InsufficientPermissionException exception) {
+            LOGGER.warn("Skipping electricity registry message deletion: missing permissions in channel '{}'",
+                    channel.getId(), exception);
+        }
     }
 
     private Map<String, String> buildElectricityInPlaceholders(final PowerOutageLog log) {
@@ -227,23 +251,36 @@ public final class ElectricityRegistryServiceImpl implements ElectricityRegistry
                         messageService.get(Message.POWER_OUTAGE_DELETE_BUTTON)));
     }
 
-    private List<CompletableFuture<net.dv8tion.jda.api.entities.Message>> send(
+    private RegistrySendResult send(
             final long userId,
             final Message message,
             final Map<String, String> placeholders,
             final List<ActionRow> components) {
         final List<CompletableFuture<net.dv8tion.jda.api.entities.Message>> futures = new ArrayList<>();
+        final List<SkippedChannel> skippedChannels = new ArrayList<>();
         for (final TextChannel channel : resolveChannels(userId)) {
+            if (!BotPermissions.canSendMessages(channel)) {
+                LOGGER.warn("Skipping electricity registry message: missing permissions in channel '{}'",
+                        channel.getId());
+                skippedChannels.add(new SkippedChannel(channel.getIdLong(), channel.getGuild().getIdLong()));
+                continue;
+            }
             final Map<String, String> channelPlaceholders = new HashMap<>(placeholders);
             channelPlaceholders.put("nickname",
                     nicknameResolver.resolveNickname(channel.getGuild().getIdLong(), userId));
 
             final String content = messageService.get(message, channelPlaceholders);
-            futures.add(channel.sendMessage(content)
-                    .addComponents(components)
-                    .submit());
+            try {
+                futures.add(channel.sendMessage(content)
+                        .addComponents(components)
+                        .submit());
+            } catch (final InsufficientPermissionException exception) {
+                LOGGER.warn("Skipping electricity registry message: missing permissions in channel '{}'",
+                        channel.getId(), exception);
+                skippedChannels.add(new SkippedChannel(channel.getIdLong(), channel.getGuild().getIdLong()));
+            }
         }
-        return futures;
+        return new RegistrySendResult(futures, skippedChannels);
     }
 
     /**

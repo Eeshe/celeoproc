@@ -5,6 +5,7 @@
   "missing_argument": "Falta el argumento: {argument}",
   "guild_only": "Este comando solo puede usarse en canales de texto de servidores.",
   "no_permission": "Necesitas el permiso **Gestionar servidor** para ejecutar este comando.",
+  "bot_missing_channel_permissions": "No tengo los permisos necesarios para publicar en {channel}. Concédeme los permisos **Ver canal**, **Enviar mensajes** e **Insertar enlaces** allí.",
   "command_postembed_name": "publicarcartelera",
   "command_postembed_description": "Publica la cartelera de seguimiento eléctrico",
   "command_poststats_name": "publicarestadisticas",

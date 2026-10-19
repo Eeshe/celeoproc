@@ -16,8 +16,11 @@ import org.slf4j.LoggerFactory;
 
 import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.model.ElectricityStatusEmbed;
+import me.eeshe.celeoproc.model.ElectricityStatusUpdateResult;
 import me.eeshe.celeoproc.model.PowerOutageLog;
 import me.eeshe.celeoproc.model.PowerOutageRegistryMessage;
+import me.eeshe.celeoproc.model.RegistrySendResult;
+import me.eeshe.celeoproc.model.SkippedChannel;
 import me.eeshe.celeoproc.model.UserElectricityStatus;
 import me.eeshe.celeoproc.repository.ElectricityStatusEmbedRepository;
 import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
@@ -63,39 +66,43 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
     }
 
     @Override
-    public boolean setUserElectricityIn(final long userId, final long embedMessageId) {
+    public ElectricityStatusUpdateResult setUserElectricityIn(final long userId, final long embedMessageId) {
         final Optional<UserElectricityStatus> existing = userElectricityStatusRepository.get(userId);
         if (existing.isPresent() && existing.get().hasElectricity()) {
-            return addParticipantIfAbsent(embedMessageId, userId);
+            return new ElectricityStatusUpdateResult(addParticipantIfAbsent(embedMessageId, userId), List.of());
         }
 
         final UserElectricityStatus status = existing
                 .orElseGet(() -> new UserElectricityStatus(userId));
         status.setElectricityIn(Instant.now());
         userElectricityStatusRepository.save(status);
+
+        List<SkippedChannel> skippedChannels = List.of();
         if (status.getElectricityOut() != null) {
-            powerOutageLogService.getIncompletePowerOutageLog(userId).ifPresent(incompleteLog -> {
+            final Optional<PowerOutageLog> incompleteLog = powerOutageLogService
+                    .getIncompletePowerOutageLog(userId);
+            if (incompleteLog.isPresent()) {
                 final PowerOutageLog completedLog = new PowerOutageLog(
-                        incompleteLog.id(),
-                        incompleteLog.userId(),
-                        incompleteLog.electricityOut(),
+                        incompleteLog.get().id(),
+                        incompleteLog.get().userId(),
+                        incompleteLog.get().electricityOut(),
                         status.getElectricityIn());
                 powerOutageLogService.update(completedLog);
-                saveElectricityInRegistryMessages(completedLog);
-            });
+                skippedChannels = saveElectricityInRegistryMessages(completedLog);
+            }
         }
         updateParticipantEmbeds(embedMessageId, userId);
-        return true;
+        return new ElectricityStatusUpdateResult(true, skippedChannels);
     }
 
     @Override
-    public boolean setUserElectricityOut(
+    public ElectricityStatusUpdateResult setUserElectricityOut(
             final long userId,
             final Duration electricityInEstimate,
             final long embedMessageId) {
         final Optional<UserElectricityStatus> existing = userElectricityStatusRepository.get(userId);
         if (existing.isPresent() && !existing.get().hasElectricity()) {
-            return addParticipantIfAbsent(embedMessageId, userId);
+            return new ElectricityStatusUpdateResult(addParticipantIfAbsent(embedMessageId, userId), List.of());
         }
 
         Objects.requireNonNull(electricityInEstimate, "Electricity in estimate must not be null");
@@ -110,8 +117,9 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
         updateParticipantEmbeds(embedMessageId, userId);
 
         final PowerOutageLog powerOutageLog = powerOutageLogService.startPowerOutage(userId, now);
-        saveElectricityOutRegistryMessages(powerOutageLog, status.getElectricityIn());
-        return true;
+        final List<SkippedChannel> skippedChannels = saveElectricityOutRegistryMessages(powerOutageLog,
+                status.getElectricityIn());
+        return new ElectricityStatusUpdateResult(true, skippedChannels);
     }
 
     /**
@@ -120,13 +128,15 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
      *
      * @param log                   incomplete log the messages announce
      * @param previousElectricityIn moment the user's electricity last came back
+     * @return registry channels skipped because the bot lacks permissions
      */
-    private void saveElectricityOutRegistryMessages(
+    private List<SkippedChannel> saveElectricityOutRegistryMessages(
             final PowerOutageLog log,
             final Instant previousElectricityIn) {
-        final List<CompletableFuture<Message>> futures = electricityRegistryService.sendElectricityOut(log.userId(),
+        final RegistrySendResult sendResult = electricityRegistryService.sendElectricityOut(log.userId(),
                 previousElectricityIn);
-        final List<PowerOutageRegistryMessage> registryMessages = awaitRegistryMessages(futures).stream()
+        final List<PowerOutageRegistryMessage> registryMessages = awaitRegistryMessages(sendResult.messages())
+                .stream()
                 .map(message -> new PowerOutageRegistryMessage(
                         message.getIdLong(),
                         null,
@@ -134,6 +144,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
                         message.getChannel().getIdLong()))
                 .toList();
         powerOutageRegistryMessageService.saveAll(registryMessages);
+        return sendResult.skippedChannels();
     }
 
     /**
@@ -141,9 +152,10 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
      * previously stored electricity out messages, matching them by channel.
      *
      * @param log completed log the messages announce
+     * @return registry channels skipped because the bot lacks permissions
      */
-    private void saveElectricityInRegistryMessages(final PowerOutageLog log) {
-        final List<CompletableFuture<Message>> futures = electricityRegistryService.sendElectricityIn(log);
+    private List<SkippedChannel> saveElectricityInRegistryMessages(final PowerOutageLog log) {
+        final RegistrySendResult sendResult = electricityRegistryService.sendElectricityIn(log);
 
         final Map<Long, PowerOutageRegistryMessage> storedByChannel = new HashMap<>();
         for (final PowerOutageRegistryMessage registryMessage : powerOutageRegistryMessageService
@@ -151,7 +163,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
             storedByChannel.put(registryMessage.channelId(), registryMessage);
         }
         final List<PowerOutageRegistryMessage> updatedMessages = new ArrayList<>();
-        for (final Message message : awaitRegistryMessages(futures)) {
+        for (final Message message : awaitRegistryMessages(sendResult.messages())) {
             final PowerOutageRegistryMessage stored = storedByChannel.get(message.getChannel().getIdLong());
             if (stored == null) {
                 continue;
@@ -163,6 +175,7 @@ public final class UserElectricityStatusServiceImpl implements UserElectricitySt
                     stored.channelId()));
         }
         powerOutageRegistryMessageService.updateAll(updatedMessages);
+        return sendResult.skippedChannels();
     }
 
     /**

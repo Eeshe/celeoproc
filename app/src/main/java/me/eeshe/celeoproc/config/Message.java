@@ -24,6 +24,7 @@ public enum Message {
     MISSING_ARGUMENT("missing_argument"),
     GUILD_ONLY("guild_only"),
     NO_PERMISSION("no_permission"),
+    BOT_MISSING_CHANNEL_PERMISSIONS("bot_missing_channel_permissions"),
 
     COMMAND_POSTEMBED_NAME("command_postembed_name", CommandData.MAX_NAME_LENGTH),
     COMMAND_POSTEMBED_DESCRIPTION("command_postembed_description", CommandData.MAX_DESCRIPTION_LENGTH),

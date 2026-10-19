@@ -5,6 +5,7 @@
   "missing_argument": "Missing argument: {argument}",
   "guild_only": "This command can only be used in server text channels.",
   "no_permission": "You need the **Manage Server** permission to run this command.",
+  "bot_missing_channel_permissions": "I don't have the permissions needed to post in {channel}. Please grant me **View Channel**, **Send Messages** and **Embed Links** there.",
   "command_postembed_name": "postembed",
   "command_postembed_description": "Post the electricity status embed",
   "command_poststats_name": "poststats",

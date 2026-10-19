@@ -81,6 +81,18 @@ JDA (Discord Bot API): https://docs.jda.wiki/index.html
   (`languages/messages.en.json`, `languages/messages.es.json`,
   `app/src/main/resources/messages.json`, and the gitignored
   `config/messages.json`) or startup validation fails.
+- **Why does JDA throw `InsufficientPermissionException` from a listener even
+  when the operation is queued?** JDA performs channel permission checks
+  synchronously while building the action (`sendMessage`, `sendMessageEmbeds`,
+  `editMessageById`, ...), before the `queue`/`submit` failure callback exists.
+  So a missing `MESSAGE_SEND`/`MESSAGE_EMBED_LINKS` escapes as an uncaught
+  exception instead of reaching the REST callback. Outbound channel operations
+  must pre-check with `BotPermissions.canSendMessages` /
+  `canSendEmbeds` (`channel.canTalk()` plus `MESSAGE_EMBED_LINKS`) and still
+  catch `InsufficientPermissionException` for permission races. Registry sends
+  collect skipped `SkippedChannel(channelId, guildId)` entries in
+  `RegistrySendResult`; `ElectricityStatusEmbedListener` reports only the
+  skipped channels from the interaction's guild through an ephemeral follow-up.
 - **Why do all Postgres vars use the `POSTGRES_*` prefix?** `AppSecrets` reads
   `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_HOST` /
   `POSTGRES_PORT`. Only the first three are consumed by the official `postgres`

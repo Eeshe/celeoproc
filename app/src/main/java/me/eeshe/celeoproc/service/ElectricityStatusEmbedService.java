@@ -57,7 +57,8 @@ public interface ElectricityStatusEmbedService {
      * already-posted Discord message.
      *
      * @param statusEmbed stored embed to refresh
-     * @return {@code true} when the edit was dispatched
+     * @return {@code true} when the edit was dispatched, or {@code false} when the
+     *         channel is gone or the bot lacks permissions to edit in it
      */
     boolean updateElectricityStatusEmbed(ElectricityStatusEmbed statusEmbed);
 
@@ -67,9 +68,9 @@ public interface ElectricityStatusEmbedService {
      *
      * @param messageId id of the Discord message the embed belongs to
      * @param userId    id of the participating Discord user to remove
-     * @return {@code true} when the user was a participant and the embed was
-     *         updated, or {@code false} when no stored embed exists for the
-     *         message or the user was not a participant
+     * @return {@code true} when the user was a participant and was removed from
+     *         the stored embed, or {@code false} when no stored embed exists for
+     *         the message or the user was not a participant
      */
     boolean deleteParticipant(long messageId, long userId);
 

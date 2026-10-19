@@ -3,6 +3,7 @@ package me.eeshe.celeoproc.service;
 import java.time.Duration;
 import java.util.List;
 
+import me.eeshe.celeoproc.model.ElectricityStatusUpdateResult;
 import me.eeshe.celeoproc.model.UserElectricityStatus;
 
 /**
@@ -15,11 +16,10 @@ public interface UserElectricityStatusService {
      *
      * @param userId         Discord user id
      * @param embedMessageId id of the message whose buttons were used
-     * @return {@code true} when the status was updated or the user was newly
-     *         registered in the embed, {@code false} when the user already has
-     *         electricity and was already registered
+     * @return the update outcome, including the registry channels skipped
+     *         because the bot lacks permissions
      */
-    boolean setUserElectricityIn(long userId, long embedMessageId);
+    ElectricityStatusUpdateResult setUserElectricityIn(long userId, long embedMessageId);
 
     /**
      * Stores the moment the given user's electricity went out.
@@ -28,11 +28,11 @@ public interface UserElectricityStatusService {
      * @param electricityInEstimate expected duration until the electricity comes
      *                              back
      * @param embedMessageId        id of the message whose buttons were used
-     * @return {@code true} when the status was updated or the user was newly
-     *         registered in the embed, {@code false} when the user already has
-     *         no electricity and was already registered
+     * @return the update outcome, including the registry channels skipped
+     *         because the bot lacks permissions
      */
-    boolean setUserElectricityOut(long userId, Duration electricityInEstimate, long embedMessageId);
+    ElectricityStatusUpdateResult setUserElectricityOut(long userId, Duration electricityInEstimate,
+            long embedMessageId);
 
     /**
      * @param userId Discord user id

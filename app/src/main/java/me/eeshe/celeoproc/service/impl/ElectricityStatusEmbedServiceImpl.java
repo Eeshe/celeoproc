@@ -21,6 +21,7 @@ import me.eeshe.celeoproc.repository.UserElectricityStatusRepository;
 import me.eeshe.celeoproc.service.ElectricityStatusEmbedService;
 import me.eeshe.celeoproc.service.MessageService;
 import me.eeshe.celeoproc.service.NicknameResolver;
+import me.eeshe.celeoproc.util.BotPermissions;
 import me.eeshe.celeoproc.util.DurationFormatter;
 import me.eeshe.celeoproc.util.MessageLinkFormatter;
 import me.eeshe.celeoproc.util.TimestampFormatter;
@@ -30,6 +31,7 @@ import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 
 public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatusEmbedService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ElectricityStatusEmbedServiceImpl.class);
@@ -65,24 +67,35 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         final long channelId = channel.getIdLong();
         final long guildId = channel.getGuild().getIdLong();
 
-        channel.sendMessageEmbeds(buildElectricityStatusEmbed(List.of(), 0L, guildId))
-                .addComponents(buildButtons())
-                .queue(
-                        message -> {
-                            final long messageId = message.getIdLong();
-                            saveEmbed(messageId, guildId, channelId);
-                            message.editMessageEmbeds(buildElectricityStatusEmbed(List.of(), messageId, guildId))
-                                    .queueAfter(
-                                            1L,
-                                            TimeUnit.SECONDS,
-                                            ignored -> {
-                                            },
-                                            throwable -> LOGGER.error(
-                                                    "Failed to set the footer on electricity status embed for message '{}'",
-                                                    messageId, throwable));
-                        },
-                        throwable -> LOGGER.error(
-                                "Failed to send electricity status embed to channel '{}'", channelId, throwable));
+        if (!BotPermissions.canSendEmbeds(channel)) {
+            LOGGER.warn("Failed to send electricity status embed: missing permissions in channel '{}'", channelId);
+            return false;
+        }
+
+        try {
+            channel.sendMessageEmbeds(buildElectricityStatusEmbed(List.of(), 0L, guildId))
+                    .addComponents(buildButtons())
+                    .queue(
+                            message -> {
+                                final long messageId = message.getIdLong();
+                                saveEmbed(messageId, guildId, channelId);
+                                message.editMessageEmbeds(buildElectricityStatusEmbed(List.of(), messageId, guildId))
+                                        .queueAfter(
+                                                1L,
+                                                TimeUnit.SECONDS,
+                                                ignored -> {
+                                                },
+                                                throwable -> LOGGER.error(
+                                                        "Failed to set the footer on electricity status embed for message '{}'",
+                                                        messageId, throwable));
+                            },
+                            throwable -> LOGGER.error(
+                                    "Failed to send electricity status embed to channel '{}'", channelId, throwable));
+        } catch (final InsufficientPermissionException exception) {
+            LOGGER.warn("Failed to send electricity status embed: missing permissions in channel '{}'",
+                    channelId, exception);
+            return false;
+        }
         return true;
     }
 
@@ -104,15 +117,26 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
         }
         statusEmbed.refreshUpdatedAt();
         electricityStatusEmbedRepository.save(statusEmbed);
-        channel.editMessageEmbedsById(statusEmbed.getMessageId(),
-                buildElectricityStatusEmbed(statusEmbed.getParticipantUserIds(), statusEmbed.getMessageId(),
-                        statusEmbed.getGuildId()))
-                .queue(
-                        ignored -> {
-                        },
-                        throwable -> LOGGER.error(
-                                "Failed to update electricity status embed for message '{}'",
-                                statusEmbed.getMessageId(), throwable));
+        if (!BotPermissions.canEditMessages(channel)) {
+            LOGGER.warn("Skipping electricity status embed update: missing permissions in channel '{}'",
+                    statusEmbed.getChannelId());
+            return false;
+        }
+        try {
+            channel.editMessageEmbedsById(statusEmbed.getMessageId(),
+                    buildElectricityStatusEmbed(statusEmbed.getParticipantUserIds(), statusEmbed.getMessageId(),
+                            statusEmbed.getGuildId()))
+                    .queue(
+                            ignored -> {
+                            },
+                            throwable -> LOGGER.error(
+                                    "Failed to update electricity status embed for message '{}'",
+                                    statusEmbed.getMessageId(), throwable));
+        } catch (final InsufficientPermissionException exception) {
+            LOGGER.warn("Skipping electricity status embed update: missing permissions in channel '{}'",
+                    statusEmbed.getChannelId(), exception);
+            return false;
+        }
         return true;
     }
 
@@ -127,7 +151,8 @@ public final class ElectricityStatusEmbedServiceImpl implements ElectricityStatu
             return false;
         }
         statusEmbed.removeParticipant(userId);
-        return updateElectricityStatusEmbed(statusEmbed);
+        updateElectricityStatusEmbed(statusEmbed);
+        return true;
     }
 
     @Override
