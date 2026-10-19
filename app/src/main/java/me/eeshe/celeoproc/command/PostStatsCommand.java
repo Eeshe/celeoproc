@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,23 +75,27 @@ public final class PostStatsCommand implements BotCommand {
                 messageService.get(Message.COMMAND_POSTSTATS_DESCRIPTION))
                 .addOption(OptionType.STRING,
                         messageService.get(Message.COMMAND_POSTSTATS_OPTION_START_DATE_NAME),
-                        messageService.get(Message.COMMAND_POSTSTATS_OPTION_START_DATE_DESCRIPTION), true)
+                        messageService.get(Message.COMMAND_POSTSTATS_OPTION_START_DATE_DESCRIPTION), false)
                 .addOption(OptionType.STRING,
                         messageService.get(Message.COMMAND_POSTSTATS_OPTION_END_DATE_NAME),
-                        messageService.get(Message.COMMAND_POSTSTATS_OPTION_END_DATE_DESCRIPTION), true);
+                        messageService.get(Message.COMMAND_POSTSTATS_OPTION_END_DATE_DESCRIPTION), false);
     }
 
     @Override
     public void run(final SlashCommandInteractionEvent event) {
         final Guild guild = event.getGuild();
+        final LocalDate today = LocalDate.now(appSettings.getTimezone());
+        final LocalDate currentMonthStart = firstDayOfMonth(today);
+        final LocalDate currentMonthEnd = lastDayOfMonth(today);
+
         final String rawStartDate = readOption(event, Message.COMMAND_POSTSTATS_OPTION_START_DATE_NAME);
-        final LocalDate startDate = parseDate(rawStartDate);
+        final LocalDate startDate = resolveDate(rawStartDate, currentMonthStart);
         if (startDate == null) {
             replyInvalidDate(event, rawStartDate);
             return;
         }
         final String rawEndDate = readOption(event, Message.COMMAND_POSTSTATS_OPTION_END_DATE_NAME);
-        final LocalDate endDate = parseDate(rawEndDate);
+        final LocalDate endDate = resolveDate(rawEndDate, currentMonthEnd);
         if (endDate == null) {
             replyInvalidDate(event, rawEndDate);
             return;
@@ -288,12 +293,44 @@ public final class PostStatsCommand implements BotCommand {
         return mapping == null ? "" : mapping.getAsString().trim();
     }
 
-    private LocalDate parseDate(final String rawDate) {
+    private static LocalDate parseDate(final String rawDate) {
         try {
             return LocalDate.parse(rawDate, DATE_FORMATTER);
         } catch (final DateTimeParseException exception) {
             return null;
         }
+    }
+
+    /**
+     * @param date date whose month is used
+     * @return first day of the given date's month
+     */
+    static LocalDate firstDayOfMonth(final LocalDate date) {
+        return date.withDayOfMonth(1);
+    }
+
+    /**
+     * @param date date whose month is used
+     * @return last day of the given date's month
+     */
+    static LocalDate lastDayOfMonth(final LocalDate date) {
+        return date.with(TemporalAdjusters.lastDayOfMonth());
+    }
+
+    /**
+     * Resolves an optional date input, falling back to the default when the input
+     * is missing or blank.
+     *
+     * @param rawDate     raw option input
+     * @param defaultDate date used when the input is missing or blank
+     * @return the parsed date, the default date, or {@code null} when the input
+     *         was invalid
+     */
+    static LocalDate resolveDate(final String rawDate, final LocalDate defaultDate) {
+        if (rawDate == null || rawDate.isBlank()) {
+            return defaultDate;
+        }
+        return parseDate(rawDate);
     }
 
     private void replyInvalidDate(final SlashCommandInteractionEvent event, final String rawDate) {
