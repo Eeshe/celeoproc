@@ -34,8 +34,8 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.utils.FileUpload;
 
-public final class PostElectricityStatsCommand implements BotCommand {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PostElectricityStatsCommand.class);
+public final class PostStatsCommand implements BotCommand {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PostStatsCommand.class);
 
     private static final int MAX_FILES_PER_MESSAGE = 10;
 
@@ -52,7 +52,7 @@ public final class PostElectricityStatsCommand implements BotCommand {
      * @param powerOutageGraphService renderer of the outage graphs
      * @param appSettings             settings providing the embed thumbnail url
      */
-    public PostElectricityStatsCommand(
+    public PostStatsCommand(
             final MessageService messageService,
             final PowerOutageLogService powerOutageLogService,
             final PowerOutageGraphService powerOutageGraphService,
@@ -96,7 +96,7 @@ public final class PostElectricityStatsCommand implements BotCommand {
             return;
         }
         if (startDate.isAfter(endDate)) {
-            event.reply(messageService.get(Message.POST_ELECTRICITY_STATS_INVALID_RANGE))
+            event.reply(messageService.get(Message.POST_STATS_INVALID_RANGE))
                     .setEphemeral(true)
                     .queue();
             return;
@@ -297,7 +297,7 @@ public final class PostElectricityStatsCommand implements BotCommand {
     }
 
     private void replyInvalidDate(final SlashCommandInteractionEvent event, final String rawDate) {
-        event.reply(messageService.get(Message.POST_ELECTRICITY_STATS_INVALID_DATE,
+        event.reply(messageService.get(Message.POST_STATS_INVALID_DATE,
                 Map.of("input", rawDate)))
                 .setEphemeral(true)
                 .queue();

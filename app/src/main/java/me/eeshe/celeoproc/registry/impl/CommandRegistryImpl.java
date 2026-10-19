@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import me.eeshe.celeoproc.command.ActivateAlertsCommand;
 import me.eeshe.celeoproc.command.BotCommand;
-import me.eeshe.celeoproc.command.PostElectricityStatsCommand;
+import me.eeshe.celeoproc.command.DeactivateAlertsCommand;
 import me.eeshe.celeoproc.command.PostElectricityStatusEmbedCommand;
-import me.eeshe.celeoproc.command.SetElectricityRegistryCommand;
-import me.eeshe.celeoproc.command.UnsetElectricityRegistryCommand;
+import me.eeshe.celeoproc.command.PostStatsCommand;
 import me.eeshe.celeoproc.config.AppSettings;
 import me.eeshe.celeoproc.config.Message;
 import me.eeshe.celeoproc.registry.CommandRegistry;
@@ -59,11 +59,11 @@ public final class CommandRegistryImpl implements CommandRegistry {
             final PowerOutageGraphService powerOutageGraphService,
             final AppSettings appSettings) {
         commandList.add(new PostElectricityStatusEmbedCommand(messageService, electricityStatusEmbedService));
-        commandList.add(new PostElectricityStatsCommand(messageService, powerOutageLogService, powerOutageGraphService,
+        commandList.add(new PostStatsCommand(messageService, powerOutageLogService, powerOutageGraphService,
                 appSettings));
-        commandList.add(new SetElectricityRegistryCommand(messageService, electricityStatusEmbedService,
+        commandList.add(new ActivateAlertsCommand(messageService, electricityStatusEmbedService,
                 registryChannelService));
-        commandList.add(new UnsetElectricityRegistryCommand(messageService, electricityStatusEmbedService,
+        commandList.add(new DeactivateAlertsCommand(messageService, electricityStatusEmbedService,
                 registryChannelService));
     }
 

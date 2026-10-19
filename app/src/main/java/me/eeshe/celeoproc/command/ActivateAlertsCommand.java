@@ -14,12 +14,12 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
-public final class SetElectricityRegistryCommand implements BotCommand {
+public final class ActivateAlertsCommand implements BotCommand {
     private final MessageService messageService;
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
     private final RegistryChannelService registryChannelService;
 
-    public SetElectricityRegistryCommand(
+    public ActivateAlertsCommand(
             final MessageService messageService,
             final ElectricityStatusEmbedService electricityStatusEmbedService,
             final RegistryChannelService registryChannelService) {
@@ -35,11 +35,11 @@ public final class SetElectricityRegistryCommand implements BotCommand {
 
     @Override
     public CommandData createCommandData() {
-        return Commands.slash(messageService.get(Message.COMMAND_SETREGISTRY_NAME),
-                messageService.get(Message.COMMAND_SETREGISTRY_DESCRIPTION))
+        return Commands.slash(messageService.get(Message.COMMAND_ACTIVATE_ALERTS_NAME),
+                messageService.get(Message.COMMAND_ACTIVATE_ALERTS_DESCRIPTION))
                 .addOption(OptionType.STRING,
-                        messageService.get(Message.COMMAND_SETREGISTRY_OPTION_EMBED_ID_NAME),
-                        messageService.get(Message.COMMAND_SETREGISTRY_OPTION_EMBED_ID_DESCRIPTION), true);
+                        messageService.get(Message.COMMAND_ACTIVATE_ALERTS_OPTION_EMBED_ID_NAME),
+                        messageService.get(Message.COMMAND_ACTIVATE_ALERTS_OPTION_EMBED_ID_DESCRIPTION), true);
     }
 
     @Override
@@ -64,7 +64,7 @@ public final class SetElectricityRegistryCommand implements BotCommand {
 
     private String readEmbedId(final SlashCommandInteractionEvent event) {
         final OptionMapping mapping = event.getOption(
-                messageService.get(Message.COMMAND_SETREGISTRY_OPTION_EMBED_ID_NAME));
+                messageService.get(Message.COMMAND_ACTIVATE_ALERTS_OPTION_EMBED_ID_NAME));
         return mapping == null ? "" : mapping.getAsString().trim();
     }
 

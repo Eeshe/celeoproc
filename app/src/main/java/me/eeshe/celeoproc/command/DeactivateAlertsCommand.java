@@ -13,12 +13,12 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
-public final class UnsetElectricityRegistryCommand implements BotCommand {
+public final class DeactivateAlertsCommand implements BotCommand {
     private final MessageService messageService;
     private final ElectricityStatusEmbedService electricityStatusEmbedService;
     private final RegistryChannelService registryChannelService;
 
-    public UnsetElectricityRegistryCommand(
+    public DeactivateAlertsCommand(
             final MessageService messageService,
             final ElectricityStatusEmbedService electricityStatusEmbedService,
             final RegistryChannelService registryChannelService) {
@@ -34,11 +34,11 @@ public final class UnsetElectricityRegistryCommand implements BotCommand {
 
     @Override
     public CommandData createCommandData() {
-        return Commands.slash(messageService.get(Message.COMMAND_UNSETREGISTRY_NAME),
-                messageService.get(Message.COMMAND_UNSETREGISTRY_DESCRIPTION))
+        return Commands.slash(messageService.get(Message.COMMAND_DEACTIVATE_ALERTS_NAME),
+                messageService.get(Message.COMMAND_DEACTIVATE_ALERTS_DESCRIPTION))
                 .addOption(OptionType.STRING,
-                        messageService.get(Message.COMMAND_UNSETREGISTRY_OPTION_EMBED_ID_NAME),
-                        messageService.get(Message.COMMAND_UNSETREGISTRY_OPTION_EMBED_ID_DESCRIPTION), true);
+                        messageService.get(Message.COMMAND_DEACTIVATE_ALERTS_OPTION_EMBED_ID_NAME),
+                        messageService.get(Message.COMMAND_DEACTIVATE_ALERTS_OPTION_EMBED_ID_DESCRIPTION), true);
     }
 
     @Override
@@ -64,7 +64,7 @@ public final class UnsetElectricityRegistryCommand implements BotCommand {
 
     private String readEmbedId(final SlashCommandInteractionEvent event) {
         final OptionMapping mapping = event.getOption(
-                messageService.get(Message.COMMAND_UNSETREGISTRY_OPTION_EMBED_ID_NAME));
+                messageService.get(Message.COMMAND_DEACTIVATE_ALERTS_OPTION_EMBED_ID_NAME));
         return mapping == null ? "" : mapping.getAsString().trim();
     }
 
