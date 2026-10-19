@@ -66,7 +66,176 @@
       >
         Add to Discord
       </a>
+      <a
+        class="hero__scroll"
+        href="#usage"
+        data-i18n-aria-label="scroll_hint"
+        aria-label="Scroll down to see how Celeoproc works"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M6 9l6 6 6-6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </a>
     </main>
+
+    <section id="usage" class="usage" aria-labelledby="usage-title">
+      <h2 id="usage-title" class="usage__title" data-i18n="usage_title">
+        How to use Celeoproc
+      </h2>
+
+      <ol class="usage__steps">
+        <li class="step" data-usage-step>
+          <h3 class="step__command">
+            <code
+              class="step__command-code"
+              data-command-en="/postembed"
+              data-command-es="/publicarcartelera"
+            >
+              <span class="step__typed" aria-hidden="true">/postembed</span>
+              <span class="sr-only">/postembed</span>
+            </code>
+          </h3>
+          <p class="step__desc" data-i18n="usage_postembed_desc">
+            Posts the live status embed in the current channel. Members use its
+            buttons to report when their power goes out and comes back.
+          </p>
+          <div class="step__media">
+            <figure>
+              <img
+                src="assets/images/es/embed.png"
+                data-src-en="assets/images/en/embed.png"
+                data-src-es="assets/images/es/embed.png"
+                data-width-en="849"
+                data-height-en="473"
+                data-width-es="668"
+                data-height-es="362"
+                alt="Celeoproc status embed listing El Manguangua and Marcos Pérez Jiménez with their electricity status, plus buttons to report power out, power in, remove participant and opt out."
+                width="668"
+                height="362"
+                loading="lazy"
+                decoding="async"
+                data-i18n-alt="usage_alt_embed"
+              />
+            </figure>
+          </div>
+        </li>
+
+        <li class="step" data-usage-step>
+          <h3 class="step__command">
+            <code
+              class="step__command-code"
+              data-command-en="/activatealerts &lt;embed_id&gt;"
+              data-command-es="/activaralertas &lt;id_cartelera&gt;"
+            >
+              <span class="step__typed" aria-hidden="true"
+                >/activatealerts &lt;embed_id&gt;</span
+              >
+              <span class="sr-only">/activatealerts &lt;embed_id&gt;</span>
+            </code>
+          </h3>
+          <p class="step__desc" data-i18n="usage_activate_desc">
+            Turns on automatic alerts for the embed with this ID. Celeoproc
+            reports outages and restorations on its own.
+          </p>
+          <div class="step__media">
+            <figure>
+              <img
+                src="assets/images/es/alert.png"
+                data-src-en="assets/images/en/alert.png"
+                data-src-es="assets/images/es/alert.png"
+                data-width-en="819"
+                data-height-en="257"
+                data-width-es="892"
+                data-height-es="197"
+                alt="Celeoproc alert messages reporting when Marcos Pérez Jiménez lost power and when it came back, with edit and delete buttons."
+                width="892"
+                height="197"
+                loading="lazy"
+                decoding="async"
+                data-i18n-alt="usage_alt_alert"
+              />
+            </figure>
+          </div>
+          <p class="step__aside">
+            <span data-i18n="usage_deactivate_prefix">Use</span>
+            <code
+              class="step__inline-command"
+              data-command-en="/deactivatealerts &lt;embed_id&gt;"
+              data-command-es="/desactivaralertas &lt;id_cartelera&gt;"
+              >/deactivatealerts &lt;embed_id&gt;</code
+            >
+            <span data-i18n="usage_deactivate_suffix">to turn alerts off.</span>
+          </p>
+        </li>
+
+        <li class="step" data-usage-step>
+          <h3 class="step__command">
+            <code
+              class="step__command-code"
+              data-command-en="/poststats"
+              data-command-es="/publicarestadisticas"
+            >
+              <span class="step__typed" aria-hidden="true">/poststats</span>
+              <span class="sr-only">/poststats</span>
+            </code>
+          </h3>
+          <p class="step__desc" data-i18n="usage_poststats_desc">
+            Posts server totals, per-member stats and the outage graph. Without
+            dates it shows the current month; optional start_date and end_date
+            arguments pick another range.
+          </p>
+          <div class="step__media step__media--pair">
+            <figure>
+              <img
+                src="assets/images/es/stats.png"
+                data-src-en="assets/images/en/stats.png"
+                data-src-es="assets/images/es/stats.png"
+                data-width-en="886"
+                data-height-en="686"
+                data-width-es="877"
+                data-height-es="688"
+                alt="Celeoproc stats embed with general server stats and per-member stats for October 2026."
+                width="877"
+                height="688"
+                loading="lazy"
+                decoding="async"
+                data-i18n-alt="usage_alt_stats"
+              />
+            </figure>
+            <figure>
+              <img
+                src="assets/images/es/graph.png"
+                data-src-en="assets/images/en/graph.png"
+                data-src-es="assets/images/es/graph.png"
+                data-width-en="1196"
+                data-height-en="796"
+                data-width-es="1196"
+                data-height-es="796"
+                alt="Outage graph for El Manguangua in October 2026, plotting outage duration against days of the month."
+                width="1196"
+                height="796"
+                loading="lazy"
+                decoding="async"
+                data-i18n-alt="usage_alt_graph"
+              />
+            </figure>
+          </div>
+        </li>
+      </ol>
+    </section>
 
     <footer class="footer">
       <p data-i18n="footer">Made for communities that lose power.</p>
