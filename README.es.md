@@ -1,7 +1,10 @@
-# Celeoproc
-
-[![English](https://img.shields.io/badge/lang-English-blue)](README.md)
-[![Español](https://img.shields.io/badge/lang-Espa%C3%B1ol-red)](README.es.md)
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="Logotipo de Celeoproc">
+  <br>
+  <br>
+  <a href="README.md"><img src="https://img.shields.io/badge/lang-English-blue" alt="English"></a>
+  <a href="README.es.md"><img src="https://img.shields.io/badge/lang-Espa%C3%B1ol-red" alt="Español"></a>
+</p>
 
 Celeoproc es un bot de Discord que permite a los miembros del servidor marcar cuándo se va y vuelve la luz. El bot recopila estadísticas sobre estos apagones y las muestra mediante mensajes y gráficos.
 
@@ -115,7 +118,6 @@ Las duraciones usan el formato `XhYmZs`: las unidades son opcionales pero se req
 - Todas las claves son obligatorias si el archivo existe: una clave ausente impide el arranque.
 - Los marcadores `{placeholder}` se sustituyen al enviar el mensaje (p. ej. `{channel}`, `{argument}`).
 - Las claves `command_*_name` definen los nombres de comandos y opciones: deben coincidir con `[a-z0-9_-]{1,32}` y ser únicos. Se aplican los límites de longitud de Discord para nombres, descripciones, etiquetas de botones, títulos de modales y títulos/pies de carteleras: superarlos impide el arranque.
-- Grupos de claves: `command_*` (nombres y descripciones de comandos), `electricity_*` (cartelera de estado, alertas, recordatorios, registro), `power_outage_*` / `edit_*` / `delete_*` (gestión de registros), `post_stats_*` / `electricity_stats_*` / `power_outage_graph_*` (estadísticas y gráficos), además de errores genéricos (`generic_error`, `no_permission`, ...). La lista completa de claves está en la [plantilla](https://github.com/Eeshe/celeoproc/blob/main/app/src/main/resources/messages.json).
 
 Este repositorio incluye 2 traducciones: [inglés](https://github.com/Eeshe/celeoproc/blob/main/languages/messages.en.json) y [español](https://github.com/Eeshe/celeoproc/blob/main/languages/messages.es.json).
 

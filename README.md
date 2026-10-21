@@ -1,7 +1,10 @@
-# Celeoproc
-
-[![English](https://img.shields.io/badge/lang-English-blue)](README.md)
-[![Español](https://img.shields.io/badge/lang-Espa%C3%B1ol-red)](README.es.md)
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="Celeoproc logo">
+  <br>
+  <br>
+  <a href="README.md"><img src="https://img.shields.io/badge/lang-English-blue" alt="English"></a>
+  <a href="README.es.md"><img src="https://img.shields.io/badge/lang-Espa%C3%B1ol-red" alt="Español"></a>
+</p>
 
 Celeoproc is a Discord bot that allows server members to mark when power goes out and comes back. The bot then collects statistics about these power outages and displays them through messages and graphs.
 
@@ -115,7 +118,6 @@ Durations use `XhYmZs` — units optional but at least one required (`6h`, `30m`
 - Every key is required when the file exists — a missing key fails startup.
 - `{placeholder}` tokens are substituted at send time (e.g. `{channel}`, `{argument}`).
 - `command_*_name` keys set slash command/option names: must match `[a-z0-9_-]{1,32}` and be unique. Discord length limits apply to names, descriptions, button labels, modal titles, embed titles/footers — exceeding them fails startup.
-- Key groups: `command_*` (command names/descriptions), `electricity_*` (status embed, alerts, reminders, registry), `power_outage_*` / `edit_*` / `delete_*` (log management), `post_stats_*` / `electricity_stats_*` / `power_outage_graph_*` (stats and graphs), plus generic errors (`generic_error`, `no_permission`, ...). Full key list in the [template](https://github.com/Eeshe/celeoproc/blob/main/app/src/main/resources/messages.json).
 
 This repo provides 2 localizations: [english](https://github.com/Eeshe/celeoproc/blob/main/languages/messages.en.json) and [spanish](https://github.com/Eeshe/celeoproc/blob/main/languages/messages.es.json).
 
